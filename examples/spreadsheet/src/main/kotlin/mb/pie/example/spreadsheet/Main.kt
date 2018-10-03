@@ -24,12 +24,10 @@ import kotlin.system.exitProcess
  */
 class Cell : TaskDef<PPath, Int> {
   override val id: String = javaClass.simpleName
-
   override fun ExecContext.exec(input: PPath): Int {
     val bytes = input.readAllBytes()
     val lines = String(bytes).lines().filter({s -> s.isNotEmpty()})
-    println("Trigger\t: " + input.javaPath.fileName)
-    require(input,FileStampers.hash)
+    require(input,FileStampers.never_equal())
     var sum = 0
     for ( line in lines) {
        try {
@@ -40,8 +38,6 @@ class Cell : TaskDef<PPath, Int> {
          sum += sub_sum
        }
     }
-    println("Resolve\t: " + input.javaPath.fileName + "\t: $sum")
-
     return sum
 
   }
@@ -55,12 +51,13 @@ class Sheet : TaskDef<PPath, Int> {
   }
 }
 
-class MultiSheet : TaskDef<PPath, None> {
+class MultiSheet : TaskDef<MultiSheet.Input, None> {
+  data class Input ( val workspace : PPath , val inactive : Set<PPath> ) : Serializable
   override val id: String = javaClass.simpleName
-  override fun ExecContext.exec(input: PPath):None {
+  override fun ExecContext.exec(input: Input):None {
 
-    for( entry in input.list() ) {
-        if (entry.isDir()) {
+    for( entry in input.workspace.list() ) {
+        if (entry.isDir() && !input.inactive.contains(entry)) {
            require(Sheet(),entry)
         }
     }
@@ -87,6 +84,8 @@ fun main(args: Array<String>) {
   taskDefs.add(sheet.id,sheet)
   taskDefs.add(multi_sheet.id,multi_sheet)
 
+
+
   // We need to create the PIE runtime, using a PieBuilderImpl.
   val pieBuilder = PieBuilderImpl()
   // We pass in the TaskDefs object we created.
@@ -94,14 +93,14 @@ fun main(args: Array<String>) {
   // For storing build results and the dependency graph, we will use the LMDB embedded database, stored at target/lmdb.
   //pieBuilder.withLMDBStore(File("target/lmdb"))
   // For example purposes, we use verbose logging which will output to stdout.
-  pieBuilder.withLogger(StreamLogger.only_errors())
+  pieBuilder.withLogger(StreamLogger.verbose()  )
   // Then we build the PIE runtime.
   val pie = pieBuilder.build()
 
   // Now we create concrete task instances from the task definitions.
 
 
-  val workspace_task = multi_sheet.createTask(workspace )
+  val workspace_task = multi_sheet.createTask(MultiSheet.Input(workspace, emptySet()) )
 
   //val fileCopierTask = fileCopier.createTask(FileCopier.Input(sourceFile, fileCreatorTask.toSTask(), destinationFile))
 

@@ -35,6 +35,7 @@ class LMDBStore(
   private val requireesOfValues: DbiB
   private val fileGens: DbiB
   private val generatorOf: DbiB
+  private val observability : DbiB
 
 
   init {
@@ -54,6 +55,7 @@ class LMDBStore(
     requireesOfValues = env.openDbi("requireesOfValues", DbiFlags.MDB_CREATE)
     fileGens = env.openDbi("fileGens", DbiFlags.MDB_CREATE)
     generatorOf = env.openDbi("generatorOf", DbiFlags.MDB_CREATE)
+    observability = env.openDbi("observability", DbiFlags.MDB_CREATE)
   }
 
   override fun close() {
@@ -73,7 +75,8 @@ class LMDBStore(
       requireesOfDb = requireesOf,
       requireesOfValuesDb = requireesOfValues,
       fileGensDb = fileGens,
-      generatorOfDb = generatorOf
+      generatorOfDb = generatorOf,
+      observableDb = observability
     )
   }
 
@@ -89,7 +92,8 @@ class LMDBStore(
       requireesOfDb = requireesOf,
       requireesOfValuesDb = requireesOfValues,
       fileGensDb = fileGens,
-      generatorOfDb = generatorOf
+      generatorOfDb = generatorOf,
+      observableDb = observability
     )
   }
 

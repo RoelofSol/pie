@@ -17,7 +17,8 @@ internal open class LMDBStoreTxn(
   private val requireesOfDb: DbiB,
   private val requireesOfValuesDb: DbiB,
   private val fileGensDb: DbiB,
-  private val generatorOfDb: DbiB
+  private val generatorOfDb: DbiB,
+  private val observableDb : DbiB
 ) : StoreReadTxn, StoreWriteTxn {
   private val shared = DbiShared(env, txn, isWriteTxn, logger)
 
@@ -56,6 +57,16 @@ internal open class LMDBStoreTxn(
     return shared.getOne<TaskKey?>(file.serialize().hash().toBuffer(), generatorOfDb).orElse(null)
   }
 
+  override fun observability(key: TaskKey): Observable {
+    val state = shared.getOne<Observable>(key.serialize().hash().toBuffer(), observableDb)
+    if(state != null) {
+        return state.deserialized
+    } else {
+        println("Warning: Is this right?")
+        return Observable.Attached
+    }
+  }
+
   override fun data(key: TaskKey): TaskData<*, *>? {
     // OPTO: reuse buffers? is that safe?
     val keyHashedBytes = key.serialize().hash()
@@ -72,7 +83,8 @@ internal open class LMDBStoreTxn(
     val taskReqs = shared.getOne<ArrayList<TaskReq>>(keyHashedBytes.toBuffer(), taskReqsDb).orElse(arrayListOf())
     val fileReqs = shared.getOne<ArrayList<FileReq>>(keyHashedBytes.toBuffer(), fileReqsDb).orElse(arrayListOf())
     val fileGens = shared.getOne<ArrayList<FileGen>>(keyHashedBytes.toBuffer(), fileGensDb).orElse(arrayListOf())
-    return TaskData(input, output, taskReqs, fileReqs, fileGens)
+    val observableState = shared.getOne<Observable>(keyHashedBytes.toBuffer(), fileGensDb).orElse({println("IS this right?");Observable.Attached}())
+    return TaskData(input, output, taskReqs, fileReqs, fileGens, observableState)
   }
 
   override fun numSourceFiles(): Int {
@@ -163,6 +175,10 @@ internal open class LMDBStoreTxn(
     setFileReqs(key, data.fileReqs)
     setFileGens(key, data.fileGens)
   }
+
+    override fun setObservability(key : TaskKey,enable: Boolean ) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
   override fun drop() {
     inputDb.drop(txn)

@@ -4,17 +4,6 @@ import mb.pie.api.*
 import mb.pie.vfs.path.PPath
 import java.util.concurrent.ConcurrentHashMap
 
-data class StoreDump(
-        val inputs : Map<TaskKey, In>,
-        val outputs : Map<TaskKey, Output<*>>,
-        val taskReqs : Map<TaskKey, ArrayList<TaskReq>>,
-        val callersOf : Map<TaskKey, MutableSet<TaskKey>>,
-        val fileReqs : Map<TaskKey, ArrayList<FileReq>>,
-        val requireesOf : Map<PPath, MutableSet<TaskKey>>,
-        val fileGens : Map<TaskKey, ArrayList<FileGen>>,
-        val generatorOf : Map<PPath, TaskKey?>
-  )
-
 class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   private val inputs = ConcurrentHashMap<TaskKey, In>()
   private val outputs = ConcurrentHashMap<TaskKey, Output<*>>()
@@ -24,18 +13,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   private val requireesOf = ConcurrentHashMap<PPath, MutableSet<TaskKey>>()
   private val fileGens = ConcurrentHashMap<TaskKey, ArrayList<FileGen>>()
   private val generatorOf = ConcurrentHashMap<PPath, TaskKey?>()
-
-
-  fun dump(): StoreDump {
-    return StoreDump(inputs.toMap(),
-            outputs.toMap(),
-            taskReqs.toMap(),
-            callersOf.toMap(),
-            fileReqs.toMap(),
-            requireesOf.toMap(),
-            fileGens.toMap(),
-            generatorOf.toMap())
-  }
+  private val observables = ConcurrentHashMap<TaskKey,Observable>()
 
   override fun readTxn() = this
   override fun writeTxn() = this
@@ -62,6 +40,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
 
   override fun taskReqs(key: TaskKey) = taskReqs.getOrEmptyList(key)
   override fun callersOf(key: TaskKey): Set<TaskKey> = callersOf.getOrPutSet(key)
+  override fun observability(key: TaskKey) : Observable = observables.getOrDefault(key,Observable.Attached)
   override fun setTaskReqs(key: TaskKey, taskReqs: ArrayList<TaskReq>) {
     // Remove old call requirements
     val oldTaskReqs = this.taskReqs.remove(key)
@@ -120,17 +99,64 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
     val callReqs = taskReqs(key)
     val pathReqs = fileReqs(key)
     val pathGens = fileGens(key)
-    return TaskData(input, output.output, callReqs, pathReqs, pathGens)
+    val observable = observability(key)
+    return TaskData(input, output.output, callReqs, pathReqs, pathGens,observable)
   }
 
   override fun setData(key: TaskKey, data: TaskData<*, *>) {
-    val (input, output, callReqs, pathReqs, pathGens) = data
+    val (input, output, callReqs, pathReqs, pathGens,observability) = data
     setInput(key, input)
     setOutput(key, output)
     setTaskReqs(key, callReqs)
     setFileReqs(key, pathReqs)
     setFileGens(key, pathGens)
+    if( observability != Observable.Attached ) {
+      setObservability(key, is_observed(observability))
+    }
+
   }
+
+
+
+  override fun setObservability(key: TaskKey,enable : Boolean) {
+      val state = observability(key)
+      if ( enable ) {
+          if ( is_observed(state ) ) {
+              observables[key] = Observable.Forced
+              return
+          }
+          observables[key] = Observable.Forced
+          for ( reqs in taskReqs(key)) {
+              propegateAttachment(reqs.callee)
+          }
+      } else {
+          if( !is_observed(state) ) { return }
+          observables[key] = Observable.Detached
+          for ( reqs in taskReqs(key)) {
+              propegateDetachment(reqs.callee)
+          }
+      }
+  }
+
+
+    fun propegateAttachment(key: TaskKey) {
+        val state = observability(key)
+        if( !is_observed(state) ) {
+            observables[key] = Observable.Attached;
+            for ( reqs in taskReqs(key)) {
+                propegateAttachment(reqs.callee)
+            }
+        }
+    }
+    fun propegateDetachment(key: TaskKey) {
+        if( observability(key) != Observable.Attached ) { return }
+        val keep_attached = callersOf(key).map { k -> observability(k) }.any { o -> o != Observable.Detached };
+        if( keep_attached ) { return }
+        observables[key] = Observable.Detached
+        for ( reqs in taskReqs(key)) {
+            propegateDetachment(reqs.callee)
+        }
+    }
 
 
   override fun numSourceFiles(): Int {
