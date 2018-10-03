@@ -154,9 +154,7 @@ open class BottomUpSession(
    */
   private fun scheduleAffectedByFiles(files: Set<PPath>) {
     logger.trace("Scheduling tasks affected by files: $files")
-    val affected = store.readTxn().use { txn -> txn.directlyAffectedTaskKeys(files, logger)
-            .filter{ k -> txn.observability(k) != Observable.Detached }
-    }
+    val affected = store.readTxn().use { txn -> txn.directlyAffectedTaskKeys(files, logger)  }
     for(key in affected) {
       logger.trace("- scheduling: $key")
       queue.add(key)
