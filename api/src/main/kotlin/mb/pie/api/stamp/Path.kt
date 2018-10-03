@@ -5,6 +5,7 @@ import mb.pie.vfs.list.PathMatcher
 import mb.pie.vfs.list.PathWalker
 import mb.pie.vfs.path.PPath
 import java.io.Serializable
+import java.time.Duration
 
 /**
  * Stamper for customizable change detection on file contents. Stampers must be [Serializable].
@@ -33,4 +34,7 @@ object FileStampers {
   fun modified(walker: PathWalker?) = RecModifiedFileStamper(walker)
 
   val exists = ExistsFileStamper()
+
+  val never_equal = FreshnessStamper( Duration.ZERO )
+  fun fresshness( duration: Duration ) = FreshnessStamper(duration)
 }
