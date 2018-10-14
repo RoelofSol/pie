@@ -107,4 +107,41 @@ class PieImpl(
 
   override fun toString() =
     "PieImpl($store, $share, $defaultOutputStamper, $defaultFileReqStamper, $defaultFileGenStamper, ${layerFactory(logger)})"
+
+  override fun setObservability(key: TaskKey,enable : Boolean) {
+    val store = this.store.writeTxn();
+    // note : i've added these functions here so they have the store in their closure.
+
+    fun propegateAttachment(key: TaskKey) {
+      val state = store.observability(key)
+      if( state == Observability.Attached ) { return }
+
+      store.setObservability(key, Observability.Attached )
+      for ( reqs in store.taskReqs(key)) {
+        propegateAttachment(reqs.callee)
+      }
+
+    }
+    fun propegateDetachment(key: TaskKey) {
+      if( store.observability(key) != Observability.Attached ) { return }
+      val has_attached_parent = store.callersOf(key).map { k -> store.observability(k) }.any { o -> o == Observability.Attached };
+      if( has_attached_parent ) { return }
+
+      store.setObservability(key, Observability.Detached)
+      for ( reqs in store.taskReqs(key)) {
+        propegateDetachment(reqs.callee)
+      }
+    }
+
+    if ( enable ) {
+      propegateAttachment(key)
+    } else {
+      store.setObservability(key, Observability.ForcedDetached);
+      for ( reqs in store.taskReqs(key)) {
+        propegateDetachment(reqs.callee)
+      }
+    }
+
+
+  }
 }

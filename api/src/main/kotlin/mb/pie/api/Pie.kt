@@ -13,6 +13,10 @@ interface Pie : AutoCloseable {
   val bottomUpExecutor: BottomUpExecutor
 
   fun dropStore()
+
+
+  fun setObservability(key: TaskKey, enabled: Boolean)
+
 }
 
 /**

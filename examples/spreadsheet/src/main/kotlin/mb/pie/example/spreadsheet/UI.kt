@@ -1,6 +1,5 @@
 package mb.pie.example.spreadsheet
 
-import mb.pie.api.Observable
 import mb.pie.api.TaskKey
 import mb.pie.runtime.PieImpl
 
@@ -28,12 +27,10 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey) : JFrame() {
     init {
         title = "HelloApp"
 
-
-
         val sheets = tx().taskReqs(root_task);
 
         for (sheet in sheets) {
-            pie.store.writeTxn().setObservability(sheet.callee, false)
+            pie.setObservability(sheet.callee,false);
         }
         sheets.getOrNull(0)?.let { e -> setActiveSheet(e.callee)}
 
@@ -46,8 +43,8 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey) : JFrame() {
     fun setActiveSheet(key : TaskKey) {
         if(key == active) { return }
         println("Activate $key : Disable : $active")
-        active?.let { active ->  pie.store.writeTxn().setObservability(active ,false) }
-        pie.store.writeTxn().setObservability(key,true);
+        active?.let { active ->  pie.setObservability(active ,false) }
+        pie.setObservability(key,true);
         active = key
     }
 

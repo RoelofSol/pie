@@ -1,7 +1,6 @@
 package mb.pie.api
 
 import mb.pie.vfs.path.PPath
-import java.io.Serializable
 
 /**
  * Internal storage for tasks, outputs, and dependency information.
@@ -91,7 +90,7 @@ interface StoreReadTxn : StoreTxn {
   /**
    * @return observability of [key].
    */
-  fun observability(key: TaskKey): Observable
+  fun observability(key: TaskKey): Observability
 
   /**
    * @return number of source files: required files for which there is no generator.
@@ -133,7 +132,7 @@ interface StoreWriteTxn : StoreReadTxn {
    */
   fun setData(key: TaskKey, data: TaskData<*, *>)
 
-  fun setObservability(key : TaskKey,enable: Boolean )
+  fun setObservability(key : TaskKey,observability: Observability )
 
   /**
    * Removes all data from (drops) the store.
@@ -157,7 +156,7 @@ inline fun <O : Out> Output<*>.cast() = Output(this.output as O)
 /**
  * Wrapper for task data: outputs and dependencies.
  */
-data class TaskData<out I : In, out O : Out>(val input: I, val output: O, val taskReqs: ArrayList<TaskReq>, val fileReqs: ArrayList<FileReq>, val fileGens: ArrayList<FileGen>, val observability : Observable)
+data class TaskData<out I : In, out O : Out>(val input: I, val output: O, val taskReqs: ArrayList<TaskReq>, val fileReqs: ArrayList<FileReq>, val fileGens: ArrayList<FileGen>, val observability : Observability)
 
 /**
  * Attempts to cast untyped task data to typed task data.
@@ -165,17 +164,4 @@ data class TaskData<out I : In, out O : Out>(val input: I, val output: O, val ta
 @Suppress("UNCHECKED_CAST", "NOTHING_TO_INLINE")
 inline fun <I : In, O : Out> TaskData<*, *>.cast() = this as TaskData<I, O>
 
-
-enum class Observable : Serializable {
-    Attached,
-    Forced,
-    Detached
-}
-fun is_observed(o:Observable): Boolean {
-    return o == Observable.Attached || o == Observable.Forced
-}
-fun max_priority(a: Observable , b: Observable): Observable {
-    val order = listOf(Observable.Forced, Observable.Attached, Observable.Detached);
-    return order.filter { state -> state == a || state == b }.first()
-}
 

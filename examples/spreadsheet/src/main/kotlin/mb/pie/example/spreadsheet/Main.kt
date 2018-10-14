@@ -27,7 +27,7 @@ class Cell : TaskDef<PPath, Int> {
   override fun ExecContext.exec(input: PPath): Int {
     val bytes = input.readAllBytes()
     val lines = String(bytes).lines().filter({s -> s.isNotEmpty()})
-    require(input,FileStampers.never_equal())
+    require(input,FileStampers.never_equal)
     var sum = 0
     for ( line in lines) {
        try {
@@ -109,7 +109,6 @@ fun main(args: Array<String>) {
 
   SwingUtilities.invokeAndWait {
     SpreadSheet(pie,workspace_task.key())
-    StateExplorer(pie)
   }
 
   pie.close()

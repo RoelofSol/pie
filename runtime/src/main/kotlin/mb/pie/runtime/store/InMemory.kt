@@ -13,7 +13,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   private val requireesOf = ConcurrentHashMap<PPath, MutableSet<TaskKey>>()
   private val fileGens = ConcurrentHashMap<TaskKey, ArrayList<FileGen>>()
   private val generatorOf = ConcurrentHashMap<PPath, TaskKey?>()
-  private val observables = ConcurrentHashMap<TaskKey,Observable>()
+  private val observables = ConcurrentHashMap<TaskKey,Observability>()
 
   override fun readTxn() = this
   override fun writeTxn() = this
@@ -40,7 +40,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
 
   override fun taskReqs(key: TaskKey) = taskReqs.getOrEmptyList(key)
   override fun callersOf(key: TaskKey): Set<TaskKey> = callersOf.getOrPutSet(key)
-  override fun observability(key: TaskKey) : Observable = observables.getOrDefault(key,Observable.Attached)
+  override fun observability(key: TaskKey) : Observability = observables.getOrDefault(key,Observability.Attached)
   override fun setTaskReqs(key: TaskKey, taskReqs: ArrayList<TaskReq>) {
     // Remove old call requirements
     val oldTaskReqs = this.taskReqs.remove(key)
@@ -110,52 +110,14 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
     setTaskReqs(key, callReqs)
     setFileReqs(key, pathReqs)
     setFileGens(key, pathGens)
-    if( observability != Observable.Attached ) {
-      setObservability(key, is_observed(observability))
-    }
+    setObservability(key, observability)
+
 
   }
 
 
-
-  override fun setObservability(key: TaskKey,enable : Boolean) {
-      val state = observability(key)
-      if ( enable ) {
-          if ( is_observed(state ) ) {
-              observables[key] = Observable.Forced
-              return
-          }
-          observables[key] = Observable.Forced
-          for ( reqs in taskReqs(key)) {
-              propegateAttachment(reqs.callee)
-          }
-      } else {
-          if( !is_observed(state) ) { return }
-          observables[key] = Observable.Detached
-          for ( reqs in taskReqs(key)) {
-              propegateDetachment(reqs.callee)
-          }
-      }
-  }
-
-
-    fun propegateAttachment(key: TaskKey) {
-        val state = observability(key)
-        if( !is_observed(state) ) {
-            observables[key] = Observable.Attached;
-            for ( reqs in taskReqs(key)) {
-                propegateAttachment(reqs.callee)
-            }
-        }
-    }
-    fun propegateDetachment(key: TaskKey) {
-        if( observability(key) != Observable.Attached ) { return }
-        val keep_attached = callersOf(key).map { k -> observability(k) }.any { o -> o != Observable.Detached };
-        if( keep_attached ) { return }
-        observables[key] = Observable.Detached
-        for ( reqs in taskReqs(key)) {
-            propegateDetachment(reqs.callee)
-        }
+    override fun setObservability(key: TaskKey, observability: Observability) {
+        observables[key] = observability;
     }
 
 
