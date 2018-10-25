@@ -17,9 +17,17 @@ internal open class LMDBStoreTxn(
   private val requireesOfDb: DbiB,
   private val requireesOfValuesDb: DbiB,
   private val fileGensDb: DbiB,
-  private val generatorOfDb: DbiB,
-  private val observableDb : DbiB
+  private val generatorOfDb: DbiB
 ) : StoreReadTxn, StoreWriteTxn {
+
+  override fun setObservability(key: TaskKey, observability: Observability) {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+  }
+
+  override fun observability(key: TaskKey): Observability {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+  }
+
   private val shared = DbiShared(env, txn, isWriteTxn, logger)
 
 
@@ -57,16 +65,6 @@ internal open class LMDBStoreTxn(
     return shared.getOne<TaskKey?>(file.serialize().hash().toBuffer(), generatorOfDb).orElse(null)
   }
 
-  override fun observability(key: TaskKey): Observability {
-    val state = shared.getOne<Observability>(key.serialize().hash().toBuffer(), observableDb)
-    if(state != null) {
-        return state.deserialized
-    } else {
-        println("Warning: Is this right?")
-        return Observability.Attached
-    }
-  }
-
   override fun data(key: TaskKey): TaskData<*, *>? {
     // OPTO: reuse buffers? is that safe?
     val keyHashedBytes = key.serialize().hash()
@@ -83,8 +81,7 @@ internal open class LMDBStoreTxn(
     val taskReqs = shared.getOne<ArrayList<TaskReq>>(keyHashedBytes.toBuffer(), taskReqsDb).orElse(arrayListOf())
     val fileReqs = shared.getOne<ArrayList<FileReq>>(keyHashedBytes.toBuffer(), fileReqsDb).orElse(arrayListOf())
     val fileGens = shared.getOne<ArrayList<FileGen>>(keyHashedBytes.toBuffer(), fileGensDb).orElse(arrayListOf())
-    val observableState = shared.getOne<Observability>(keyHashedBytes.toBuffer(), fileGensDb).orElse({println("IS this right?");Observability.Attached}())
-    return TaskData(input, output, taskReqs, fileReqs, fileGens, observableState)
+    return TaskData(input, output, taskReqs, fileReqs, fileGens,Observability.Attached)
   }
 
   override fun numSourceFiles(): Int {
@@ -174,10 +171,6 @@ internal open class LMDBStoreTxn(
     setTaskReqs(key, data.taskReqs)
     setFileReqs(key, data.fileReqs)
     setFileGens(key, data.fileGens)
-  }
-
-  override fun setObservability(key : TaskKey,enable: Observability ) {
-      TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
   override fun drop() {

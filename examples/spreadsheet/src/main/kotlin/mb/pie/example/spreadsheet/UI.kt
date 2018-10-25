@@ -6,6 +6,7 @@ import mb.pie.runtime.PieImpl
 import javax.swing.*
 import mb.pie.api.StoreReadTxn
 import mb.pie.api.TaskData
+import mb.pie.runtime.store.InMemoryStore
 import mb.pie.vfs.path.PPath
 import java.awt.BorderLayout
 import java.awt.Label
@@ -19,13 +20,15 @@ import javax.swing.JTabbedPane
 
 
 
-class SpreadSheet(pie: PieImpl, root_task: TaskKey) : JFrame() {
+class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) : JFrame() {
     private val pie = pie
     private val root_task = root_task
     private val panel = JPanel()
     private var active : TaskKey? = null
+    private val inspector = inspector
     init {
-        title = "HelloApp"
+        title = "Spreadsheet1"
+
 
         val sheets = tx().taskReqs(root_task);
 
@@ -45,6 +48,8 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey) : JFrame() {
         println("Activate $key : Disable : $active")
         active?.let { active ->  pie.setObservability(active ,false) }
         pie.setObservability(key,true);
+        val store = pie.store.readTxn() as InMemoryStore;
+        inspector.add_state(store.dump())
         active = key
     }
 
@@ -70,6 +75,9 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey) : JFrame() {
                 tabs.selectedComponent = component
             }
         }
+
+        val store = pie.store.readTxn() as InMemoryStore;
+        inspector.add_state(store.dump())
 
         tabs.addChangeListener{ _ ->
             if (tabs.selectedComponent != null) {

@@ -4,6 +4,18 @@ import mb.pie.api.*
 import mb.pie.vfs.path.PPath
 import java.util.concurrent.ConcurrentHashMap
 
+data class StoreDump(
+  val inputs: HashMap<TaskKey,In>,
+   val outputs : HashMap<TaskKey, Output<*>>,
+   val taskReqs : HashMap<TaskKey, ArrayList<TaskReq>>,
+   val callersOf : HashMap<TaskKey, MutableSet<TaskKey>>,
+   val fileReqs : HashMap<TaskKey, ArrayList<FileReq>>,
+   val requireesOf : HashMap<PPath, MutableSet<TaskKey>>,
+   val fileGens : HashMap<TaskKey, ArrayList<FileGen>>,
+   val generatorOf : HashMap<PPath, TaskKey?>,
+   val observables : HashMap<TaskKey,Observability>
+)
+
 class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   private val inputs = ConcurrentHashMap<TaskKey, In>()
   private val outputs = ConcurrentHashMap<TaskKey, Output<*>>()
@@ -14,6 +26,19 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   private val fileGens = ConcurrentHashMap<TaskKey, ArrayList<FileGen>>()
   private val generatorOf = ConcurrentHashMap<PPath, TaskKey?>()
   private val observables = ConcurrentHashMap<TaskKey,Observability>()
+
+  fun dump() : StoreDump {
+    return StoreDump(HashMap(inputs),
+            HashMap(outputs),
+            HashMap(taskReqs),
+            HashMap(callersOf),
+            HashMap(fileReqs),
+            HashMap(requireesOf),
+            HashMap(fileGens),
+            HashMap(generatorOf),
+            HashMap(observables)
+    )
+  }
 
   override fun readTxn() = this
   override fun writeTxn() = this

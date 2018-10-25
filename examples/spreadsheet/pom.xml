@@ -1,7 +1,7 @@
 <project
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 >
   <modelVersion>4.0.0</modelVersion>
   <artifactId>pie.example.spreadsheet</artifactId>
@@ -9,7 +9,7 @@
   <parent>
     <groupId>org.metaborg</groupId>
     <artifactId>pie.parent.kotlin</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.2.2</version>
     <relativePath>../../pom/kotlin</relativePath>
   </parent>
 
@@ -39,7 +39,6 @@
       <artifactId>kotlin-stdlib-jdk8</artifactId>
       <version>${kotlin.runtime.version}</version>
     </dependency>
-
   </dependencies>
 
   <build>
@@ -51,10 +50,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -74,14 +69,14 @@
               <finalName>example</finalName>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>mb.pie.example.spreadsheet.MainKt</mainClass>
+                  <mainClass>mb.pie.example.copyfile.MainKt</mainClass>
                 </transformer>
               </transformers>
             </configuration>
           </execution>
         </executions>
       </plugin>
-      <!-- Do not install or deploy this example -->
+      <!-- Skip installation and deployment. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
@@ -99,5 +94,5 @@
     </plugins>
   </build>
 
-  <description>PIE spreadsheet example</description>
+  <description>PIE file copier example</description>
 </project>

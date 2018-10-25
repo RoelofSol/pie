@@ -6,6 +6,8 @@ import mb.pie.vfs.path.PPath
  * Internal storage for tasks, outputs, and dependency information.
  */
 interface Store : AutoCloseable {
+
+
   /**
    * Opens a read transaction. Transaction must be [closed][close] after usage to free up internal resources.
    */

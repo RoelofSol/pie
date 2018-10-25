@@ -1,5 +1,6 @@
 package mb.pie.example.spreadsheet
 
+
 import mb.pie.api.*
 import mb.pie.api.stamp.FileStampers
 import mb.pie.runtime.PieBuilderImpl
@@ -33,7 +34,7 @@ class Cell : TaskDef<PPath, Int> {
        try {
           sum += line.toInt()
        } catch (e :  NumberFormatException) {
-         val path : PPath = input.parent()?.resolve(line)!!
+         val path : PPath = input.parent()?.resolve(line)!!.normalized()
          val sub_sum = require(Cell(),path)
          sum += sub_sum
        }
@@ -46,7 +47,7 @@ class Cell : TaskDef<PPath, Int> {
 class Sheet : TaskDef<PPath, Int> {
   override val id: String = javaClass.simpleName
   override fun ExecContext.exec(input: PPath): Int {
-      val path : PPath =  input.resolve("root")
+      val path : PPath =  input.resolve("root").normalized()
       return require(Cell(),path)
   }
 }
@@ -55,14 +56,12 @@ class MultiSheet : TaskDef<MultiSheet.Input, None> {
   data class Input ( val workspace : PPath , val inactive : Set<PPath> ) : Serializable
   override val id: String = javaClass.simpleName
   override fun ExecContext.exec(input: Input):None {
-
     for( entry in input.workspace.list() ) {
         if (entry.isDir() && !input.inactive.contains(entry)) {
            require(Sheet(),entry)
         }
     }
     return None()
-
   }
 }
 
@@ -93,6 +92,8 @@ fun main(args: Array<String>) {
   // For storing build results and the dependency graph, we will use the LMDB embedded database, stored at target/lmdb.
   //pieBuilder.withLMDBStore(File("target/lmdb"))
   // For example purposes, we use verbose logging which will output to stdout.
+
+
   pieBuilder.withLogger(StreamLogger.verbose()  )
   // Then we build the PIE runtime.
   val pie = pieBuilder.build()
@@ -108,7 +109,8 @@ fun main(args: Array<String>) {
   pie.topDownExecutor.newSession().requireInitial(workspace_task)
 
   SwingUtilities.invokeAndWait {
-    SpreadSheet(pie,workspace_task.key())
+    val inspector = StoreInspector()
+    SpreadSheet(pie,workspace_task.key(),inspector)
   }
 
   pie.close()
