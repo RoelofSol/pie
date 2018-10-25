@@ -10,7 +10,7 @@
   <parent>
     <groupId>org.metaborg</groupId>
     <artifactId>pie.parent</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.2.2</version>
     <relativePath>pom</relativePath>
   </parent>
 
@@ -26,16 +26,19 @@
     <module>share.coroutine</module>
     <module>taskdefs.guice</module>
     <module>store.lmdb</module>
-    <module>examples/copyfile</module>
-    <module>examples/spreadsheet</module>
     <module>lang/spec</module>
     <module>lang/example</module>
     <module>lang/test</module>
     <module>lang/runtime</module>
+    <module>examples/copyfile</module>
+    <module>examples/spreadsheet</module>
+    <module>examples/helloworld.kotlin</module>
+    <module>examples/helloworld.java</module>
   </modules>
 
   <build>
     <plugins>
+      <!-- Skip installation and deployment. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
