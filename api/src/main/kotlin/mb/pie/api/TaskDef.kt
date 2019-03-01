@@ -61,6 +61,12 @@ interface TaskDef<I : In, O : Out> {
    */
   @JvmDefault
   fun createSerializableTask(input: I): STask<I> = STask(this.id, input)
+
+  /**
+   * Ask if task instance can be garbage collected when its no longer referenced.
+   */
+  @JvmDefault
+  fun removeUnused(input: I): Boolean = false
 }
 
 /**
@@ -75,6 +81,7 @@ open class LambdaTaskDef<I : In, O : Out>(
   override fun ExecContext.exec(input: I): O = execFunc(input)
   override fun key(input: I) = keyFunc?.invoke(input) ?: super.key(input)
   override fun desc(input: I, maxLength: Int): String = descFunc?.invoke(input, maxLength) ?: super.desc(input, maxLength)
+  override fun removeUnused(input: I): Boolean = true
 }
 
 /**

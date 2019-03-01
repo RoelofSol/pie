@@ -60,6 +60,11 @@ class TaskExecutor(
     store.writeTxn().use {
       it.setData(key, data)
     }
+
+    store.writeTxn().use {
+
+    }
+
     // Validate well-formedness of the dependency graph, after writing.
     store.readTxn().use {
       layer.validatePostWrite(key, data, it)

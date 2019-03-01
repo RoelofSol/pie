@@ -29,6 +29,10 @@ class Cell : TaskDef<JavaFSPath, Int> {
         return sum
 
     }
+    override fun removeUnused(i: JavaFSPath) : Boolean {
+        System.out.println("Dropping  $i");
+        return true
+    }
 }
 
 class Sheet : TaskDef<JavaFSPath, Int> {
@@ -37,6 +41,7 @@ class Sheet : TaskDef<JavaFSPath, Int> {
         val path =  input.appendSegment("root").normalized
         return require(Cell(),path)
     }
+
 }
 
 class MultiSheet : TaskDef<MultiSheet.Input, None> {

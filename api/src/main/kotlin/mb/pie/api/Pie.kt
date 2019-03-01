@@ -16,6 +16,7 @@ interface Pie : AutoCloseable {
 
   fun dropOutput(key: TaskKey)
   fun addOutput(key: TaskKey)
+  fun gc()
 
 }
 

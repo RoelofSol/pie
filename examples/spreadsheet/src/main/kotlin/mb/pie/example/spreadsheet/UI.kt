@@ -72,6 +72,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
             }
         }
 
+        pie.gc()
         val store = pie.store.readTxn() as InMemoryStore;
         inspector.add_state(store.dump())
         //check_state(store)

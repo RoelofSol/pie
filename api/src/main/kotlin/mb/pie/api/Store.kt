@@ -15,6 +15,8 @@ interface Store : AutoCloseable {
    */
   fun writeTxn(): StoreWriteTxn
 
+
+
   /**
    * Force synchronization of in-memory data to persistent storage.
    */
@@ -94,6 +96,8 @@ interface StoreReadTxn : StoreTxn {
    * @return number of source files: required files for which there is no generator.
    */
   fun numSourceFiles(): Int
+
+  fun unrefferenced() : Set<TaskKey>
 }
 
 /**
@@ -134,6 +138,11 @@ interface StoreWriteTxn : StoreReadTxn {
    * Sets the output and dependencies for task [key] to [data].
    */
   fun setData(key: TaskKey, data: TaskData<*, *>)
+
+  /**
+   * Removes all data related to task [key] and return list of dependencies
+   */
+  fun dropKey(key: TaskKey) : Set<TaskKey>
 
 
   /**

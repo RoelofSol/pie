@@ -17,6 +17,7 @@ import mb.pie.runtime.logger.exec.LoggerExecutorLogger
 import mb.pie.runtime.resourcesystems.MapResourceSystems
 import mb.pie.runtime.share.NonSharingShare
 import mb.pie.runtime.store.InMemoryStore
+import java.util.*
 
 class PieBuilderImpl : PieBuilder {
   private var taskDefs: TaskDefs? = null
@@ -130,6 +131,22 @@ class PieImpl(
     bottomUpExecutor.requireTopDown(key.toTask(taskDefs,store.readTxn()))
   }
 
+  override fun gc(){
+
+    store.writeTxn().use {
+      val txn = it as StoreReadTxn;
+      val stack : Deque<TaskKey> = ArrayDeque()
+      stack.addAll(txn.unrefferenced());
+      while ( stack.isNotEmpty() ) {
+          val key = stack.pop()
+          if ( key.toTask(taskDefs,txn).removeUnused() ) {
+            val deps = it.dropKey(key)
+            val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
+            stack.addAll(unreferenced);
+          }
+      }
+    }
+  }
 
   override fun dropStore() {
     store.writeTxn().use { it.drop() }
