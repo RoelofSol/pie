@@ -42,7 +42,6 @@ class TaskExecutor(
     val (taskRequires, resourceRequires, resourceProvides) = context.deps()
 
     val newRequiredSet : Set<TaskKey> = taskRequires.map{ it.callee }.toSet()
-    val added = newRequiredSet.minus(oldRequiredSet)
     val removed = oldRequiredSet.minus(newRequiredSet)
 
     // Since this task was executed , it is at least considered observed.
@@ -65,9 +64,6 @@ class TaskExecutor(
       layer.validatePostWrite(key, data, it)
     }
 
-    for (newReq in added) {
-      propegateAttachment(store.writeTxn(),newReq)
-    }
     for (droppedReq in removed) {
       propegateDetachment(store.writeTxn(),droppedReq)
     }
