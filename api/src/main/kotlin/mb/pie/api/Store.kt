@@ -97,7 +97,7 @@ interface StoreReadTxn : StoreTxn {
    */
   fun numSourceFiles(): Int
 
-  fun unrefferenced() : Set<TaskKey>
+  fun unreferenced() : Set<TaskKey>
 }
 
 /**

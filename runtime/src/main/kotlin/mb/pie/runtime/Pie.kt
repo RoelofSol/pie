@@ -136,7 +136,7 @@ class PieImpl(
     store.writeTxn().use {
       val txn = it as StoreReadTxn;
       val stack : Deque<TaskKey> = ArrayDeque()
-      stack.addAll(txn.unrefferenced());
+      stack.addAll(txn.unreferenced());
       while ( stack.isNotEmpty() ) {
           val key = stack.pop()
           if ( key.toTask(taskDefs,txn).removeUnused() ) {

@@ -146,7 +146,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
     return "InMemoryStore"
   }
 
-  override fun unrefferenced() : Set<TaskKey> {
+  override fun unreferenced() : Set<TaskKey> {
     return callersOf.filter { it.value.isEmpty() }.keys
   }
 
