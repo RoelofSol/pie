@@ -44,9 +44,12 @@ class TaskExecutor(
     val newRequiredSet : Set<TaskKey> = taskRequires.map{ it.callee }.toSet()
     val removed = oldRequiredSet.minus(newRequiredSet)
 
-    // Since this task was executed , it is at least considered observed.
-    val observability = if (oldObservability.isNotObservable())
-      Observability.Observed else oldObservability;
+    // Since this task was executed , it is at least considered attached.
+    val observability = if (oldObservability.isNotObservable()){
+      Observability.Attached }
+    else {
+      oldObservability
+    };
 
     val data = TaskData(task.input, output, taskRequires, resourceRequires, resourceProvides, observability)
     // Validate well-formedness of the dependency graph, before writing.
