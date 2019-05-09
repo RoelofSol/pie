@@ -31,6 +31,7 @@ class BottomUpExecutorImpl constructor(
   @Throws(ExecException::class, InterruptedException::class)
   override fun <I : In, O : Out> requireTopDown(task: Task<I, O>, cancel: Cancelled): O {
     val session = newSession()
+    addOutput(store.writeTxn() ,task.key());
     return session.requireTopDownInitial(task, cancel)
   }
 
@@ -121,7 +122,7 @@ open class BottomUpSession(
       store.sync()
     }
   }
-
+    
   /**
    * Entry point for bottom-up builds.
    */

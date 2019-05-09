@@ -143,7 +143,7 @@ class PieImpl(
           val shouldDrop = try {
              dropPolicy(key.toTask(taskDefs,txn));
           } catch ( e: Throwable ) {
-            true 
+            true
           };
           if ( shouldDrop)  {
             removed += 1;
