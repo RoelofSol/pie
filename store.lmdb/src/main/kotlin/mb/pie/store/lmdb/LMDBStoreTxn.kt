@@ -18,6 +18,8 @@ internal open class LMDBStoreTxn(
   private val resourceProvidesDb: DbiB,
   private val providerOfDb: DbiB
 ) : StoreReadTxn, StoreWriteTxn {
+
+
   private val shared = DbiShared(env, txn, isWriteTxn, logger)
 
 
@@ -175,6 +177,14 @@ internal open class LMDBStoreTxn(
     setTaskRequires(key, data.taskRequires)
     setResourceRequires(key, data.resourceRequires)
     setResourceProvides(key, data.resourceProvides)
+  }
+
+  override fun dropKey(key: TaskKey): Set<TaskKey> {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+  }
+
+  override fun unreferenced(): Set<TaskKey> {
+    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
   override fun drop() {

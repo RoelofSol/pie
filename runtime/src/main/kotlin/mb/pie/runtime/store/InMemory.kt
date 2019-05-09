@@ -4,6 +4,8 @@ import mb.pie.api.*
 import java.util.concurrent.ConcurrentHashMap
 
 class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
+
+
   private val inputs = ConcurrentHashMap<TaskKey, In>()
   private val outputs = ConcurrentHashMap<TaskKey, Output<*>>()
   private val observables = ConcurrentHashMap<TaskKey,Observability>()
@@ -142,6 +144,26 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
 
   override fun toString(): String {
     return "InMemoryStore"
+  }
+
+  override fun unreferenced() : Set<TaskKey> {
+    return callersOf.filter { it.value.isEmpty() }.keys
+  }
+
+  override fun dropKey(key: TaskKey): Set<TaskKey> {
+    assert(callersOf(key).isEmpty())
+    val called = taskReqs.remove(key)?.map{ it.callee }?.toSet() ?: setOf();
+    for ( call in called ) {
+       callersOf.getOrPutSet(call).remove(key)
+    }
+    setResourceProvides(key, ArrayList())
+    setResourceRequires(key,ArrayList())
+    inputs.remove(key)
+    outputs.remove(key)
+    fileReqs.remove(key)
+    fileGens.remove(key)
+    observables.remove(key)
+    return called
   }
 
   fun dump() : StoreDump {

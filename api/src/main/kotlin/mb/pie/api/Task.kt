@@ -13,6 +13,8 @@ data class Task<I : In, O : Out>(private val taskDef: TaskDef<I, O>, val input: 
     return TaskKey(taskDef.id, key)
   }
 
+  fun removeUnused(): Boolean = taskDef.removeUnused(input)
+
   fun exec(ctx: ExecContext): O {
     return with(taskDef) { ctx.exec(input) }
   }
