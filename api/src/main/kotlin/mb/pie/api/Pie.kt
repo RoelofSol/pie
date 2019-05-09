@@ -16,9 +16,12 @@ interface Pie : AutoCloseable {
 
   fun dropOutput(key: TaskKey)
   fun addOutput(key: TaskKey)
-  fun gc()
+
+  var dropPolicy : (Task<*,*>) -> Boolean
+  fun gc(): Int
 
 }
+
 
 /**
  * Builder for [PIE][Pie] facade.

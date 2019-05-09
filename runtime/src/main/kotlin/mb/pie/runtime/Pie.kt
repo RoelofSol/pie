@@ -119,7 +119,8 @@ class PieImpl(
   val defaultProvideFileSystemStamper: FileSystemStamper,
   val layerFactory: (Logger) -> Layer,
   val logger: Logger,
-  val executorLoggerFactory: (Logger) -> ExecutorLogger
+  val executorLoggerFactory: (Logger) -> ExecutorLogger,
+  override var dropPolicy : (Task<*,*>) -> Boolean  = Task<*,*>::removeUnused
 ) : Pie {
 
   override fun dropOutput(key: TaskKey) {
@@ -131,21 +132,23 @@ class PieImpl(
     bottomUpExecutor.requireTopDown(key.toTask(taskDefs,store.readTxn()))
   }
 
-  override fun gc(){
-
+  override fun gc(): Int{
+    var removed = 0;
     store.writeTxn().use {
       val txn = it as StoreReadTxn;
       val stack : Deque<TaskKey> = ArrayDeque()
       stack.addAll(txn.unreferenced());
       while ( stack.isNotEmpty() ) {
           val key = stack.pop()
-          if ( key.toTask(taskDefs,txn).removeUnused() ) {
+          if ( dropPolicy (key.toTask(taskDefs,txn) )) {
+            removed += 1;
             val deps = it.dropKey(key)
             val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
             stack.addAll(unreferenced);
           }
       }
     }
+    return removed
   }
 
   override fun dropStore() {
