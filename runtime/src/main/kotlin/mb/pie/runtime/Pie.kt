@@ -139,8 +139,13 @@ class PieImpl(
       val stack : Deque<TaskKey> = ArrayDeque()
       stack.addAll(txn.unreferenced());
       while ( stack.isNotEmpty() ) {
-          val key = stack.pop()
-          if ( dropPolicy (key.toTask(taskDefs,txn) )) {
+          val key = stack.pop();
+          val shouldDrop = try {
+             dropPolicy(key.toTask(taskDefs,txn));
+          } catch ( e: Throwable ) {
+            true 
+          };
+          if ( shouldDrop)  {
             removed += 1;
             val deps = it.dropKey(key)
             val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
