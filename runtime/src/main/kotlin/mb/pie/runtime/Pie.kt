@@ -133,27 +133,20 @@ class PieImpl(
   }
 
   override fun gc(): Int{
-    var removed = 0;
-    store.writeTxn().use {
+    return store.writeTxn().use {
       val txn = it as StoreReadTxn;
-      val stack : Deque<TaskKey> = ArrayDeque()
-      stack.addAll(txn.unreferenced());
-      while ( stack.isNotEmpty() ) {
-          val key = stack.pop();
-          val shouldDrop = try {
-             dropPolicy(key.toTask(taskDefs,txn));
-          } catch ( e: Throwable ) {
-            true
-          };
-          if ( shouldDrop)  {
-            removed += 1;
-            val deps = it.dropKey(key)
-            val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
-            stack.addAll(unreferenced);
-          }
+      val unobserved = txn.unobserved();
+      val dropping = unobserved.filter {
+        try {
+          dropPolicy(it.toTask(taskDefs, txn))
+        } catch (e: Throwable) {
+          true
+        }
       }
-    }
-    return removed
+
+      dropping.forEach { key -> it.dropKey(key) };
+      return dropping.size
+    };
   }
 
   override fun dropStore() {

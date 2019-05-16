@@ -183,7 +183,7 @@ internal open class LMDBStoreTxn(
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 
-  override fun unreferenced(): Set<TaskKey> {
+  override fun unobserved(): Set<TaskKey> {
     TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
   }
 

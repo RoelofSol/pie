@@ -8,7 +8,7 @@ enum class Observability : Serializable {
     Observed,
     Detached;
     fun isObservable(): Boolean = this == Observed || this == Attached
-    fun isNotObservable() : Boolean = !this.isObservable()
+    fun      isNotObservable() : Boolean = !this.isObservable()
 }
 
 fun addOutput(store: StoreWriteTxn, key : TaskKey){
