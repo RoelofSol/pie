@@ -122,6 +122,9 @@ class PieImpl(
   val executorLoggerFactory: (Logger) -> ExecutorLogger,
   override var dropPolicy : (Task<*,*>) -> Boolean  = Task<*,*>::removeUnused
 ) : Pie {
+  override fun img(location: String) {
+    build_image(this, location);
+  }
 
   override fun dropOutput(key: TaskKey) {
     dropOutput(store.writeTxn(),key)
@@ -133,20 +136,27 @@ class PieImpl(
   }
 
   override fun gc(): Int{
-    return store.writeTxn().use {
+    var removed = 0;
+    store.writeTxn().use {
       val txn = it as StoreReadTxn;
-      val unobserved = txn.unobserved();
-      val dropping = unobserved.filter {
-        try {
-          dropPolicy(it.toTask(taskDefs, txn))
+      val stack: Deque<TaskKey> = ArrayDeque()
+      stack.addAll(txn.unobserved());
+      while (stack.isNotEmpty()) {
+        val key = stack.pop();
+        val shouldDrop = try {
+          dropPolicy(key.toTask(taskDefs, txn));
         } catch (e: Throwable) {
           true
+        };
+        if (shouldDrop) {
+          removed += 1;
+          val deps = it.dropKey(key)
+          val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
+          stack.addAll(unreferenced);
         }
       }
-
-      dropping.forEach { key -> it.dropKey(key) };
-      return dropping.size
     };
+    return removed
   }
 
   override fun dropStore() {
@@ -159,4 +169,12 @@ class PieImpl(
 
   override fun toString() =
     "PieImpl($store, $share, $defaultOutputStamper, $defaultRequireFileSystemStamper, $defaultProvideFileSystemStamper, ${layerFactory(logger)})"
+
+
+
+}
+
+fun img(pie:Pie,t: String) {
+
+
 }

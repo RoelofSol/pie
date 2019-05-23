@@ -147,7 +147,7 @@ class InMemoryStore : Store, StoreReadTxn, StoreWriteTxn {
   }
 
   override fun unobserved() : Set<TaskKey> {
-    return callersOf.filter { it.value.isEmpty() }.keys
+      return callersOf.filter { it.value.isEmpty() }.keys
   }
 
   override fun dropKey(key: TaskKey): Set<TaskKey> {

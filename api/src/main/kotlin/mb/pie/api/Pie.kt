@@ -20,6 +20,7 @@ interface Pie : AutoCloseable {
   var dropPolicy : (Task<*,*>) -> Boolean
   fun gc(): Int
 
+  fun img(location: String)
 }
 
 
