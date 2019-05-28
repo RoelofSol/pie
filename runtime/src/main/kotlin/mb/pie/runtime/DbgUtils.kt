@@ -44,7 +44,7 @@ fun toGraph(dump : StoreDump) : String {
     val fileReqs = dump.fileReqs.flatMap { (e,v) -> v.map{ filereq -> "${get_id(e)} -> ${get_file(Paths.get(filereq.key.key.toString()))} [arrowhead=normal]"} }
 
 
-    for ( (e,v) in dump.fileReqs) {
+   /* for ( (e,v) in dump.fileReqs) {
         var set = mutableSetOf<ResourceRequireDep>();
         for ( p in v ) {
             if ( set.add( p ) ) {
@@ -54,7 +54,7 @@ fun toGraph(dump : StoreDump) : String {
                 throw  Error("duplicate ");
             }
         }
-    }
+    }*/
 
     val key_labels = keys.map{ k ->
         val color = when (dump.observables.getOrDefault(k, Observability.Attached)) {
@@ -69,9 +69,13 @@ fun toGraph(dump : StoreDump) : String {
 
     val result = """
                 digraph G {
+                    rankdir=LR
                     node [shape=box]
                     ${key_labels.joinToString("\n")}
+                    subgraph tmp {
+                    rank=same
                     ${file_labels.joinToString("\n")}
+                    }
                     ${taskReqs.joinToString("\n")}
                     ${fileReqs.joinToString("\n")}
                 }
