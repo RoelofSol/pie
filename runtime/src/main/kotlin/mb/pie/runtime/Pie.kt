@@ -131,8 +131,9 @@ class PieImpl(
   }
 
   override fun addOutput(key: TaskKey) {
-    addOutput(store.writeTxn(),key)
+
     bottomUpExecutor.requireTopDown(key.toTask(taskDefs,store.readTxn()))
+    addOutput(store.writeTxn(),key)
   }
 
   override fun gc(): Int{

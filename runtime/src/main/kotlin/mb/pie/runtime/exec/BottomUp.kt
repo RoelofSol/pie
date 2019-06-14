@@ -31,7 +31,6 @@ class BottomUpExecutorImpl constructor(
   @Throws(ExecException::class, InterruptedException::class)
   override fun <I : In, O : Out> requireTopDown(task: Task<I, O>, cancel: Cancelled): O {
     val session = newSession()
-    addOutput(store.writeTxn() ,task.key());
     return session.requireTopDownInitial(task, cancel)
   }
 
@@ -227,47 +226,47 @@ open class BottomUpSession(
       return exec(key, task, NoData(), cancel)
     }
 
+    val existingData = storedData.cast<I, O>();
+    val (input, output, _, _, _, observable) = existingData;
+    // We can not guarantee unobserved tasks are consistent
+    if (observable.isNotObservable()) {
+
+      return exec(key,task, UnobservedRequired(observable),cancel)
+    }
     // Task is in dependency graph. It may be scheduled to be run, but we need its output *now*.
     val requireNowData = requireScheduledNow(key, cancel)
     if(requireNowData != null) {
       // Task was scheduled. That is, it was either directly or indirectly affected. Therefore, it has been executed.
       return requireNowData.cast<I, O>()
-    } else {
-      // Task was not scheduled. That is, it was not directly affected by file changes, and not indirectly affected by other tasks.
-      // Therefore, it has not been executed. However, the task may still be affected by internal inconsistencies.
-      val existingData = storedData.cast<I, O>()
-      val (input, output, _, _, _, observable) = existingData
-
-      // We can not guarantee unobserved tasks are consistent
-      if (observable.isNotObservable()) {
-        return exec(key,task, UnobservedRequired(observable),cancel)
-      }
-
-      // Internal consistency: input changes.
-      with(requireShared.checkInput(input, task)) {
-        if(this != null) {
-          return exec(key, task, this, cancel)
-        }
-      }
-
-      // Internal consistency: transient output consistency.
-      with(requireShared.checkOutputConsistency(output)) {
-        if(this != null) {
-          return exec(key, task, this, cancel)
-        }
-      }
-
-      // Notify observer.
-      val observer = observers[key]
-      if(observer != null) {
-        executorLogger.invokeObserverStart(observer, key, output)
-        observer.invoke(output)
-        executorLogger.invokeObserverEnd(observer, key, output)
-      }
-
-      // Task is consistent.
-      return existingData
     }
+    // Task was not scheduled. That is, it was not directly affected by file changes, and not indirectly affected by other tasks.
+    // Therefore, it has not been executed. However, the task may still be affected by internal inconsistencies.
+
+    // Internal consistency: input changes.
+    with(requireShared.checkInput(input, task)) {
+      if(this != null) {
+        return exec(key, task, this, cancel)
+      }
+    }
+
+    // Internal consistency: transient output consistency.
+    with(requireShared.checkOutputConsistency(output)) {
+      if(this != null) {
+        return exec(key, task, this, cancel)
+      }
+    }
+
+    // Notify observer.
+    val observer = observers[key]
+    if(observer != null) {
+      executorLogger.invokeObserverStart(observer, key, output)
+      observer.invoke(output)
+      executorLogger.invokeObserverEnd(observer, key, output)
+    }
+
+    // Task is consistent.
+    return existingData
+
   }
 
   /**

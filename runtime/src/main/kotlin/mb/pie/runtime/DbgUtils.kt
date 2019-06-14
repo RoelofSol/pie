@@ -2,7 +2,6 @@ package mb.pie.runtime
 
 import mb.pie.api.Observability
 import mb.pie.api.Pie
-import mb.pie.api.ResourceRequireDep
 import mb.pie.api.TaskKey
 import mb.pie.runtime.store.InMemoryStore
 import mb.pie.runtime.store.StoreDump
@@ -57,9 +56,9 @@ fun toGraph(dump : StoreDump) : String {
     }*/
 
     val key_labels = keys.map{ k ->
-        val color = when (dump.observables.getOrDefault(k, Observability.Attached)) {
-            Observability.Attached -> "#40e0d0"
-            Observability.Observed -> "#ff00ff"
+        val color = when (dump.observables.getOrDefault(k, Observability.Observed)) {
+            Observability.Observed -> "#40e0d0"
+            Observability.RootObserved -> "#ff00ff"
             Observability.Detached -> "#333333"
         }
         """${k.hashCode()} [label="${k.id}\n${k.key.javaClass.name}",color="${color}"]"""}

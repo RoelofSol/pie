@@ -35,7 +35,7 @@ internal open class LMDBStoreTxn(
 
   override fun observability(key: TaskKey) : Observability {
     println("LMDB Does not yet support observability");
-    return Observability.Attached
+    return Observability.Observed
   }
 
   override fun setObservability(key: TaskKey, observability: Observability) {
@@ -81,7 +81,7 @@ internal open class LMDBStoreTxn(
     }
     val input = inputDeserialized.deserialized
     val output = outputDeserialized.deserialized
-    val observability = Observability.Attached; // TODO;
+    val observability = Observability.Observed; // TODO;
     println("LMDB Observability does not work yet");
     val taskRequires = shared.getOne<ArrayList<TaskRequireDep>>(keyHashedBytes.toBuffer(), taskRequiresDb).orElse(arrayListOf())
     val resourceRequires = shared.getOne<ArrayList<ResourceRequireDep>>(keyHashedBytes.toBuffer(), resourceRequiresDb).orElse(arrayListOf())

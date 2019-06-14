@@ -59,4 +59,3 @@ class MultiSheet : TaskDef<MultiSheet.Input, None> {
         return None()
     }
 }
-

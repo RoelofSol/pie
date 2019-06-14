@@ -46,7 +46,7 @@ class TaskExecutor(
 
     // Since this task was executed , it is at least considered attached.
     val observability = if (oldObservability.isNotObservable()){
-      Observability.Attached }
+      Observability.Observed }
     else {
       oldObservability
     };
