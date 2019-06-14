@@ -140,7 +140,8 @@ open class BottomUpObservableSession(
       val key = task.key()
       executorLogger.requireTopDownInitialStart(key, task)
       val output = require(key, task, cancel)
-      executorLogger.requireTopDownInitialEnd(key, task, output)
+      executorLogger.requireTopDownInitialEnd(key, task, output);
+        addOutput(store.writeTxn(),key);
       return output
     } finally {
       store.sync()
@@ -320,10 +321,12 @@ open class BottomUpObservableSession(
       return requireObs
     }
 
-    /*
 
-
-    */
+   // If any files have changed we must execute;
+   for (req in oldData.resourceRequires) {
+       val inconsistent = requireShared.checkResourceRequire(key,task,req);
+       if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
+   }
     // When task is unobserved, we requireTopDownIncremental all its children
     //
     for (taskRequire in oldData.taskRequires) {
@@ -344,10 +347,7 @@ open class BottomUpObservableSession(
         return exec(key,task,NoData(),cancel)
       }
     }
-    for (req in oldData.resourceRequires) {
-      val inconsistent = requireShared.checkResourceRequire(key,task,req);
-      if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
-    }
+
     store.writeTxn().use{ txn -> txn.setObservability(key,Observability.Observed)}
     return store.readTxn().use{ txn -> txn.data(key)}!!;
   }
