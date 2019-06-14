@@ -18,6 +18,7 @@ import javax.swing.*
 class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) : JFrame() {
     private val pie = pie
     private val root_task = root_task
+    private val exec = pie.bottomUpObservableExecutor
     private val panel = JPanel()
     private var active : TaskKey? = null
     private val inspector = inspector
@@ -25,9 +26,9 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
         title = "Spreadsheet2"
 
         val sheets = tx().taskRequires(root_task);
-        pie.dropOutput(root_task)
+        exec.dropRootObserved(root_task)
         for (sheet in sheets) {
-            pie.dropOutput(sheet.callee);
+            exec.dropRootObserved(sheet.callee);
         }
 
         sheets.getOrNull(0)?.let { e -> setActiveSheet(e.callee)}
@@ -41,8 +42,8 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
     fun setActiveSheet(key : TaskKey) {
         if(key == active) { return }
         println("Activate $key : Disable : $active")
-        active?.let { active ->  pie.dropOutput(active) }
-        pie.addOutput(key);
+        active?.let { active ->  exec.dropRootObserved(active) }
+        exec.addRootObserved(key);
         val store = pie.store.readTxn() as InMemoryStore;
         inspector.add_state(store.dump())
         //check_state(store)
@@ -72,7 +73,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
             }
         }
 
-        pie.gc()
+        exec.gc()
         val store = pie.store.readTxn() as InMemoryStore;
         inspector.add_state(store.dump())
         //check_state(store)

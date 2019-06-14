@@ -4,23 +4,58 @@ import mb.pie.api.*
 import mb.pie.api.exec.*
 import mb.pie.api.fs.stamp.FileSystemStamper
 import mb.pie.api.stamp.OutputStamper
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-typealias TaskObserver = (Out) -> Unit
 
-class BottomUpExecutorImpl constructor(
-  private val taskDefs: TaskDefs,
-  private val resourceSystems: ResourceSystems,
-  private val store: Store,
-  private val share: Share,
-  private val defaultOutputStamper: OutputStamper,
-  private val defaultRequireFileSystemStamper: FileSystemStamper,
-  private val defaultProvideFileSystemStamper: FileSystemStamper,
-  private val layerFactory: (Logger) -> Layer,
-  private val logger: Logger,
-  private val executorLoggerFactory: (Logger) -> ExecutorLogger
-) : BottomUpExecutor {
+class BottomUpObservableExecutorImpl constructor(
+        private val taskDefs: TaskDefs,
+        private val resourceSystems: ResourceSystems,
+        private val store: Store,
+        private val share: Share,
+        private val defaultOutputStamper: OutputStamper,
+        private val defaultRequireFileSystemStamper: FileSystemStamper,
+        private val defaultProvideFileSystemStamper: FileSystemStamper,
+        private val layerFactory: (Logger) -> Layer,
+        private val logger: Logger,
+        private val executorLoggerFactory: (Logger) -> ExecutorLogger,
+        override var dropPolicy : (Task<*,*>) -> Boolean  = Task<*,*>::removeUnused
+) : BottomUpObservableExecutor {
   private val observers = ConcurrentHashMap<TaskKey, TaskObserver>()
+
+  override fun dropRootObserved(key: TaskKey) {
+    dropOutput(store.writeTxn(),key)
+  }
+
+   override fun addRootObserved(key: TaskKey) {
+
+    requireTopDown(key.toTask(taskDefs,store.readTxn()))
+    addOutput(store.writeTxn(),key)
+  }
+
+  override fun gc(): Int{
+    var removed = 0;
+    store.writeTxn().use {
+      val txn = it as StoreReadTxn;
+      val stack: Deque<TaskKey> = ArrayDeque()
+      stack.addAll(txn.unobserved());
+      while (stack.isNotEmpty()) {
+        val key = stack.pop();
+        val shouldDrop = try {
+          dropPolicy(key.toTask(taskDefs, txn));
+        } catch (e: Throwable) {
+          true
+        };
+        if (shouldDrop) {
+          removed += 1;
+          val deps = it.dropKey(key)
+          val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
+          stack.addAll(unreferenced);
+        }
+      }
+    };
+    return removed
+  }
 
 
   @Throws(ExecException::class)
@@ -42,18 +77,8 @@ class BottomUpExecutorImpl constructor(
   @Throws(ExecException::class, InterruptedException::class)
   override fun requireBottomUp(changedResources: Set<ResourceKey>, cancel: Cancelled) {
     if(changedResources.isEmpty()) return
-    val changedRate = changedResources.size.toFloat() / store.readTxn().use { it.numSourceFiles() }.toFloat()
-    if(changedRate > 0.5) {
-      val topdownSession = TopDownSessionImpl(taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory(logger), logger, executorLoggerFactory(logger))
-      for(key in observers.keys) {
-        val task = store.readTxn().use { txn -> key.toTask(taskDefs, txn) }
-        topdownSession.requireInitial(task, cancel)
-        // TODO: observers are not called when using a topdown session.
-      }
-    } else {
-      val session = newSession()
-      session.requireBottomUpInitial(changedResources, cancel)
-    }
+    val session = newSession()
+    session.requireBottomUpInitial(changedResources, cancel)
   }
 
   override fun hasBeenRequired(key: TaskKey): Boolean {
@@ -74,12 +99,12 @@ class BottomUpExecutorImpl constructor(
 
 
   @Suppress("MemberVisibilityCanBePrivate")
-  fun newSession(): BottomUpSession {
-    return BottomUpSession(taskDefs, resourceSystems, observers, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory(logger), logger, executorLoggerFactory(logger))
+  fun newSession(): BottomUpObservableSession {
+    return BottomUpObservableSession(taskDefs, resourceSystems, observers, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory(logger), logger, executorLoggerFactory(logger))
   }
 }
 
-open class BottomUpSession(
+open class BottomUpObservableSession(
   private val taskDefs: TaskDefs,
   private val resourceSystems: ResourceSystems,
   private val observers: Map<TaskKey, TaskObserver>,
@@ -121,7 +146,7 @@ open class BottomUpSession(
       store.sync()
     }
   }
-
+    
   /**
    * Entry point for bottom-up builds.
    */
@@ -144,6 +169,7 @@ open class BottomUpSession(
     logger.trace("Executing scheduled tasks: $queue")
     while(queue.isNotEmpty()) {
       cancel.throwIfCancelled()
+
       val key = queue.poll()
       val task = store.readTxn().use { txn -> key.toTask(taskDefs, txn) }
       logger.trace("Polling: ${task.desc(200)}")
@@ -179,6 +205,7 @@ open class BottomUpSession(
     logger.trace("Scheduling tasks affected by output of: ${callee.toShortString(200)}")
     val inconsistentCallers = store.readTxn().use { txn ->
       txn.callersOf(callee).filter { caller ->
+        txn.observability(caller).isObservable() &&
         txn.taskRequires(caller).filter { it.calleeEqual(callee) }.any { !it.isConsistent(output) }
       }
     }
@@ -224,42 +251,47 @@ open class BottomUpSession(
       return exec(key, task, NoData(), cancel)
     }
 
+    val existingData = storedData.cast<I, O>();
+    val (input, output, _, _, _, observable) = existingData;
+    // We can not guarantee unobserved tasks are consistent
+    if (observable.isNotObservable()) {
+
+      return exec(key,task, UnobservedRequired(observable),cancel)
+    }
     // Task is in dependency graph. It may be scheduled to be run, but we need its output *now*.
     val requireNowData = requireScheduledNow(key, cancel)
     if(requireNowData != null) {
       // Task was scheduled. That is, it was either directly or indirectly affected. Therefore, it has been executed.
       return requireNowData.cast<I, O>()
-    } else {
-      // Task was not scheduled. That is, it was not directly affected by file changes, and not indirectly affected by other tasks.
-      // Therefore, it has not been executed. However, the task may still be affected by internal inconsistencies.
-      val existingData = storedData.cast<I, O>()
-      val (input, output, _, _, _) = existingData
-
-      // Internal consistency: input changes.
-      with(requireShared.checkInput(input, task)) {
-        if(this != null) {
-          return exec(key, task, this, cancel)
-        }
-      }
-
-      // Internal consistency: transient output consistency.
-      with(requireShared.checkOutputConsistency(output)) {
-        if(this != null) {
-          return exec(key, task, this, cancel)
-        }
-      }
-
-      // Notify observer.
-      val observer = observers[key]
-      if(observer != null) {
-        executorLogger.invokeObserverStart(observer, key, output)
-        observer.invoke(output)
-        executorLogger.invokeObserverEnd(observer, key, output)
-      }
-
-      // Task is consistent.
-      return existingData
     }
+    // Task was not scheduled. That is, it was not directly affected by file changes, and not indirectly affected by other tasks.
+    // Therefore, it has not been executed. However, the task may still be affected by internal inconsistencies.
+
+    // Internal consistency: input changes.
+    with(requireShared.checkInput(input, task)) {
+      if(this != null) {
+        return exec(key, task, this, cancel)
+      }
+    }
+
+    // Internal consistency: transient output consistency.
+    with(requireShared.checkOutputConsistency(output)) {
+      if(this != null) {
+        return exec(key, task, this, cancel)
+      }
+    }
+
+    // Notify observer.
+    val observer = observers[key]
+    if(observer != null) {
+      executorLogger.invokeObserverStart(observer, key, output)
+      observer.invoke(output)
+      executorLogger.invokeObserverEnd(observer, key, output)
+    }
+
+    // Task is consistent.
+    return existingData
+
   }
 
   /**

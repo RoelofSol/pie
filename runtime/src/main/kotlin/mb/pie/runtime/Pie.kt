@@ -3,6 +3,7 @@ package mb.pie.runtime
 import mb.fs.java.JavaFileSystem
 import mb.pie.api.*
 import mb.pie.api.exec.BottomUpExecutor
+import mb.pie.api.exec.BottomUpObservableExecutor
 import mb.pie.api.exec.TopDownExecutor
 import mb.pie.api.fs.FileSystemResourceSystem
 import mb.pie.api.fs.stamp.FileSystemStamper
@@ -10,6 +11,7 @@ import mb.pie.api.fs.stamp.FileSystemStampers
 import mb.pie.api.stamp.OutputStamper
 import mb.pie.api.stamp.output.OutputStampers
 import mb.pie.runtime.exec.BottomUpExecutorImpl
+import mb.pie.runtime.exec.BottomUpObservableExecutorImpl
 import mb.pie.runtime.exec.TopDownExecutorImpl
 import mb.pie.runtime.layer.ValidationLayer
 import mb.pie.runtime.logger.NoopLogger
@@ -98,7 +100,8 @@ class PieBuilderImpl : PieBuilder {
     val share = this.share(logger)
     val topDownExecutor = TopDownExecutorImpl(taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory, logger, executorLoggerFactory)
     val bottomUpExecutor = BottomUpExecutorImpl(taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory, logger, executorLoggerFactory)
-    return PieImpl(topDownExecutor, bottomUpExecutor, taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory, logger, executorLoggerFactory)
+    val bottomUpObservable = BottomUpObservableExecutorImpl(taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory, logger, executorLoggerFactory)
+    return PieImpl(topDownExecutor, bottomUpExecutor,bottomUpObservable, taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory, logger, executorLoggerFactory)
   }
 }
 
@@ -110,6 +113,7 @@ operator fun PieBuilder.invoke(): PieBuilderImpl {
 class PieImpl(
   override val topDownExecutor: TopDownExecutor,
   override val bottomUpExecutor: BottomUpExecutor,
+  override val bottomUpObservableExecutor: BottomUpObservableExecutor,
   val taskDefs: TaskDefs,
   val resourceSystems: ResourceSystems,
   val store: Store,
@@ -119,45 +123,11 @@ class PieImpl(
   val defaultProvideFileSystemStamper: FileSystemStamper,
   val layerFactory: (Logger) -> Layer,
   val logger: Logger,
-  val executorLoggerFactory: (Logger) -> ExecutorLogger,
-  override var dropPolicy : (Task<*,*>) -> Boolean  = Task<*,*>::removeUnused
+  val executorLoggerFactory: (Logger) -> ExecutorLogger
+
 ) : Pie {
   override fun img(location: String) {
     build_image(this, location);
-  }
-
-  override fun dropOutput(key: TaskKey) {
-    dropOutput(store.writeTxn(),key)
-  }
-
-  override fun addOutput(key: TaskKey) {
-
-    bottomUpExecutor.requireTopDown(key.toTask(taskDefs,store.readTxn()))
-    addOutput(store.writeTxn(),key)
-  }
-
-  override fun gc(): Int{
-    var removed = 0;
-    store.writeTxn().use {
-      val txn = it as StoreReadTxn;
-      val stack: Deque<TaskKey> = ArrayDeque()
-      stack.addAll(txn.unobserved());
-      while (stack.isNotEmpty()) {
-        val key = stack.pop();
-        val shouldDrop = try {
-          dropPolicy(key.toTask(taskDefs, txn));
-        } catch (e: Throwable) {
-          true
-        };
-        if (shouldDrop) {
-          removed += 1;
-          val deps = it.dropKey(key)
-          val unreferenced = deps.filter { txn.callersOf(it).isEmpty() };
-          stack.addAll(unreferenced);
-        }
-      }
-    };
-    return removed
   }
 
   override fun dropStore() {

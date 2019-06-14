@@ -48,7 +48,7 @@ fun main(args: Array<String>) {
   //val fileCopierTask = fileCopier.createTask(FileCopier.Input(sourceFile, fileCreatorTask.toSTask(), destinationFile))
 
   // We (incrementally) execute the file copier task using the top-down executor.
-  pie.topDownExecutor.newSession().requireInitial(workspace_task)
+  pie.bottomUpObservableExecutor.requireTopDown(workspace_task)
 
   SwingUtilities.invokeAndWait {
     val inspector = StoreInspector()

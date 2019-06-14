@@ -2,6 +2,7 @@ package mb.pie.api
 
 import mb.pie.api.exec.BottomUpExecutor
 import mb.pie.api.exec.TopDownExecutor
+import mb.pie.api.exec.BottomUpObservableExecutor
 import mb.pie.api.fs.stamp.FileSystemStamper
 import mb.pie.api.stamp.OutputStamper
 
@@ -11,14 +12,10 @@ import mb.pie.api.stamp.OutputStamper
 interface Pie : AutoCloseable {
   val topDownExecutor: TopDownExecutor
   val bottomUpExecutor: BottomUpExecutor
-
+  val bottomUpObservableExecutor: BottomUpObservableExecutor
   fun dropStore()
 
-  fun dropOutput(key: TaskKey)
-  fun addOutput(key: TaskKey)
 
-  var dropPolicy : (Task<*,*>) -> Boolean
-  fun gc(): Int
 
   fun img(location: String)
 }
