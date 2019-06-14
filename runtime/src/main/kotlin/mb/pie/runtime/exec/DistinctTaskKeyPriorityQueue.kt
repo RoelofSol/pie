@@ -38,6 +38,10 @@ class DistinctTaskKeyPriorityQueue(comparator: Comparator<TaskKey>) {
     }
     return null
   }
+  fun remove(key:TaskKey) {
+    queue.remove(key);
+    set.remove(key)
+  }
 
   fun add(key: TaskKey) {
     if(set.contains(key)) return

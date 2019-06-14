@@ -48,6 +48,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
         inspector.add_state(store.dump())
         //check_state(store)
         active = key
+        refresh()
     }
 
     fun refresh() {
@@ -89,7 +90,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector) :
     fun update(changed_file : JavaFSPath) {
         println("Updated: ${changed_file}")
         val asResourceKey = FileSystemResource(JavaFSNode(changed_file.javaPath)).key()
-        pie.bottomUpExecutor.requireBottomUp(setOf(asResourceKey))
+        pie.bottomUpObservableExecutor.requireBottomUp(setOf(asResourceKey))
         //check_state(pie.store.readTxn() as InMemoryStore)
         println("Ok: ${changed_file}")
         refresh()

@@ -59,3 +59,23 @@ class MultiSheet : TaskDef<MultiSheet.Input, None> {
         return None()
     }
 }
+
+
+/*
+class TreeBuilder : TaskDef<Branch.Input, None> {
+    data class Input (val workspace : JavaFSPath) : Serializable
+    override val id: String = javaClass.simpleName
+    override fun ExecContext.exec(input: Input): None {
+
+
+    }
+}
+class Branch : TaskDef<Branch.Input, None> {
+    data class Input (val workspace : JavaFSPath) : Serializable
+    override val id: String = javaClass.simpleName
+    override fun ExecContext.exec(input: Input): None {
+
+
+    }
+}
+        */

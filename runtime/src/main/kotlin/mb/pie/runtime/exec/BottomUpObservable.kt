@@ -234,10 +234,15 @@ open class BottomUpObservableSession(
     }
   }
 
+  data class DataW<I : In, O : Out>(val data: TaskData<I, O>, val executed: Boolean) {
+    constructor(data: TaskData<I, O>) : this(data, true)
+  }
+
+
   /**
    * Get data for given task/key, either by getting existing data or through execution.
    */
-  private fun <I : In, O : Out> getData(key: TaskKey, task: Task<I, O>, cancel: Cancelled): TaskData<I, O> {
+  private fun <I : In, O : Out> getData(key: TaskKey, task: Task<I, O>, cancel: Cancelled): TaskData<I, O>{
     // Check if task was already visited this execution. Return immediately if so.
     val visitedData = requireShared.dataFromVisited(key)
     if(visitedData != null) {
@@ -248,15 +253,14 @@ open class BottomUpObservableSession(
     val storedData = requireShared.dataFromStore(key)
     if(storedData == null) {
       // This tasks's output cannot affect other tasks since it is new. Therefore, we do not have to schedule new tasks.
-      return exec(key, task, NoData(), cancel)
+      return  exec(key, task, NoData(), cancel)
     }
 
     val existingData = storedData.cast<I, O>();
     val (input, output, _, _, _, observable) = existingData;
     // We can not guarantee unobserved tasks are consistent
     if (observable.isNotObservable()) {
-
-      return exec(key,task, UnobservedRequired(observable),cancel)
+      return requireTopDownIncremental(key,task,existingData,cancel).cast<I,O>();
     }
     // Task is in dependency graph. It may be scheduled to be run, but we need its output *now*.
     val requireNowData = requireScheduledNow(key, cancel)
@@ -270,14 +274,14 @@ open class BottomUpObservableSession(
     // Internal consistency: input changes.
     with(requireShared.checkInput(input, task)) {
       if(this != null) {
-        return exec(key, task, this, cancel)
+        return  exec(key, task, this, cancel)
       }
     }
 
     // Internal consistency: transient output consistency.
     with(requireShared.checkOutputConsistency(output)) {
       if(this != null) {
-        return exec(key, task, this, cancel)
+        return  exec(key, task, this, cancel)
       }
     }
 
@@ -290,10 +294,69 @@ open class BottomUpObservableSession(
     }
 
     // Task is consistent.
-    return existingData
+    return  existingData
 
   }
 
+
+  
+
+
+  private fun requireTopDownIncremental(key: TaskKey, task: Task<*,*>,oldData: TaskData<*,*>, cancel: Cancelled): TaskData<*,*> {
+
+    if (oldData.observability.isObservable()) {
+      // Check if task was already visited this execution. Return immediately if so.
+      val visitedData = requireShared.dataFromVisited(key)
+      if(visitedData != null) {
+        return visitedData
+      }
+
+      // Check if data is stored for task. Execute if not.
+      val storedData = requireShared.dataFromStore(key)
+              ?: // This tasks's output cannot affect other tasks since it is new. Therefore, we do not have to schedule new tasks.
+              return  exec(key, task, NoData(), cancel)
+
+      val requireObs = requireScheduledNow(key,cancel)
+      if(requireObs == null) {
+        return exec(key, task, NoData(), cancel);
+      }
+      visited[key] = requireObs;
+      return requireObs
+    }
+
+    /*
+
+
+    */
+
+
+    // When task is unobserved, we requireTopDownIncremental all its children
+    //
+    for (taskRequire in oldData.taskRequires) {
+
+      val (callee,stamp) = taskRequire;
+
+      val calleeTask = store.readTxn().use { txn -> callee.toTask(taskDefs, txn) };
+
+      val storedData = requireShared.dataFromStore(callee);
+      if( storedData == null) { return exec(key,task,NoData(), cancel) }
+      executorLogger.checkTaskRequireStart(key, task, taskRequire)
+      val result : TaskData<*,*> = requireTopDownIncremental(callee, calleeTask,storedData,cancel );
+
+      val newStamp = stamp.stamper.stamp(result.output);
+      if (newStamp != stamp) {
+        val reason = InconsistentTaskReq(taskRequire,newStamp)
+        executorLogger.checkTaskRequireEnd(key, task, taskRequire, reason)
+        return exec(key,task,NoData(),cancel)
+      }
+    }
+    for (req in oldData.resourceRequires) {
+      val inconsistent = requireShared.checkResourceRequire(key,task,req);
+      if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
+    }
+    store.writeTxn().use{ txn -> txn.setObservability(key,Observability.Observed)}
+    return store.readTxn().use{ txn -> txn.data(key)}!!;
+  }
   /**
    * Execute the scheduled dependency of a task, and the task itself, which is required to be run *now*.
    */
@@ -314,6 +377,6 @@ open class BottomUpObservableSession(
 
 
   open fun <I : In, O : Out> exec(key: TaskKey, task: Task<I, O>, reason: ExecReason, cancel: Cancelled): TaskData<I, O> {
-    return executor.exec(key, task, reason, this, cancel)
+    return  executor.exec(key, task, reason, this, cancel);
   }
 }
