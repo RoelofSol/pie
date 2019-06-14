@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
   DynamicTask.currentState[0] = booleanArrayOf( false,true,true,true);
 
 
-  pie.bottomUpObservableExecutor.addRootObserved()
+
 
   pie.bottomUpObservableExecutor.requireTopDown(tasks[0])
 
