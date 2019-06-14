@@ -1,4 +1,4 @@
-package mb.pie.example.spreadsheet
+package mb.pie.example.patternenumeration
 
 import mb.pie.api.*
 import mb.pie.api.fs.FileSystemResource

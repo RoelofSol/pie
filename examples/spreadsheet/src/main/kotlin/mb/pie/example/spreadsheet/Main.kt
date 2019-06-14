@@ -23,6 +23,7 @@ fun main(args: Array<String>) {
   val taskDefs = MutableMapTaskDefs()
   taskDefs.add(cell.id, cell)
   taskDefs.add(sheet.id,sheet)
+  taskDefs.add(Dummy().id,Dummy())
   taskDefs.add(multiSheet.id,multiSheet)
 
 
@@ -52,7 +53,7 @@ fun main(args: Array<String>) {
 
   SwingUtilities.invokeAndWait {
     val inspector = StoreInspector()
-    SpreadSheet(pie,workspace_task.key(),inspector)
+    SpreadSheet(pie,workspace_task.key(),inspector,true)
   }
 
   pie.close()

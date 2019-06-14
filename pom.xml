@@ -33,6 +33,7 @@
     <module>lang/runtime</module>
     <module>examples/copyfile</module>
     <module>examples/spreadsheet</module>
+    <module>examples/patternenumeration</module>
     <module>examples/helloworld.kotlin</module>
     <module>examples/helloworld.java</module>
   </modules>

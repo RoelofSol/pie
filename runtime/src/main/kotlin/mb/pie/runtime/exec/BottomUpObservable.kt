@@ -298,10 +298,6 @@ open class BottomUpObservableSession(
 
   }
 
-
-  
-
-
   private fun requireTopDownIncremental(key: TaskKey, task: Task<*,*>,oldData: TaskData<*,*>, cancel: Cancelled): TaskData<*,*> {
 
     if (oldData.observability.isObservable()) {
@@ -328,8 +324,6 @@ open class BottomUpObservableSession(
 
 
     */
-
-
     // When task is unobserved, we requireTopDownIncremental all its children
     //
     for (taskRequire in oldData.taskRequires) {
@@ -379,4 +373,9 @@ open class BottomUpObservableSession(
   open fun <I : In, O : Out> exec(key: TaskKey, task: Task<I, O>, reason: ExecReason, cancel: Cancelled): TaskData<I, O> {
     return  executor.exec(key, task, reason, this, cancel);
   }
+
+
+
+
+
 }
