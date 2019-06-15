@@ -299,8 +299,11 @@ open class BottomUpObservableSession(
 
   }
 
+  // This function is called when an Detached task is required again.
+  // It recursivly calls itself to make its transitive closure consistent.
   private fun requireTopDownIncremental(key: TaskKey, task: Task<*,*>,oldData: TaskData<*,*>, cancel: Cancelled): TaskData<*,*> {
 
+    // If a task in the transitive closure is Observed.
     if (oldData.observability.isObservable()) {
       // Check if task was already visited this execution. Return immediately if so.
       val visitedData = requireShared.dataFromVisited(key)
@@ -308,27 +311,25 @@ open class BottomUpObservableSession(
         return visitedData
       }
 
-      // Check if data is stored for task. Execute if not.
-      val storedData = requireShared.dataFromStore(key)
-              ?: // This tasks's output cannot affect other tasks since it is new. Therefore, we do not have to schedule new tasks.
-              return  exec(key, task, NoData(), cancel)
-
+      // Task might be scheduled, so require now.
       val requireObs = requireScheduledNow(key,cancel)
       if(requireObs == null) {
         return exec(key, task, NoData(), cancel);
       }
+      // It was Observed and thus consistent before this build.
+      // It is not affected by a change, we can reuse the old result.
       visited[key] = requireObs;
       return requireObs
     }
 
+     // If any files have changed we must execute;
+     for (req in oldData.resourceRequires) {
+         val inconsistent = requireShared.checkResourceRequire(key,task,req);
+         if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
+     }
 
-   // If any files have changed we must execute;
-   for (req in oldData.resourceRequires) {
-       val inconsistent = requireShared.checkResourceRequire(key,task,req);
-       if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
-   }
-    // When task is unobserved, we requireTopDownIncremental all its children
-    //
+    // All dependencies are made consistent with requireTopDownIncremental.
+    // When task is unobserved, we requireTopDownIncremental all its children and compare their stamps
     for (taskRequire in oldData.taskRequires) {
 
       val (callee,stamp) = taskRequire;
@@ -348,8 +349,14 @@ open class BottomUpObservableSession(
       }
     }
 
+
     store.writeTxn().use{ txn -> txn.setObservability(key,Observability.Observed)}
-    return store.readTxn().use{ txn -> txn.data(key)}!!;
+    val result = store.readTxn().use{ txn -> txn.data(key)}!!;
+
+    // All the dependencies of this task are in order. This task is consistent.
+    // TODO: Verify that executing a 'sibling' dependency can never change the consistency of this task
+    visited[key] = result
+    return result
   }
   /**
    * Execute the scheduled dependency of a task, and the task itself, which is required to be run *now*.
