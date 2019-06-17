@@ -322,11 +322,17 @@ open class BottomUpObservableSession(
       return requireObs
     }
 
-     // If any files have changed we must execute;
-     for (req in oldData.resourceRequires) {
-         val inconsistent = requireShared.checkResourceRequire(key,task,req);
-         if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
-     }
+    // If any required files have changed we must execute;
+    for (req in oldData.resourceRequires) {
+      val inconsistent = requireShared.checkResourceRequire(key,task,req);
+      if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
+    }
+
+    // if any provided files have been modified we must execute
+    for (providing in oldData.resourceProvides) {
+      val inconsistent = requireShared.checkResourceProvide(key,task,providing);
+      if (inconsistent != null) { return exec(key,task,inconsistent,cancel); }
+    }
 
     // All dependencies are made consistent with requireTopDownIncremental.
     // When task is unobserved, we requireTopDownIncremental all its children and compare their stamps
