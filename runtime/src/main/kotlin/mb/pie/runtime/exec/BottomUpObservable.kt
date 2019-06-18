@@ -27,11 +27,13 @@ class BottomUpObservableExecutorImpl constructor(
     dropOutput(store.writeTxn(),key)
   }
 
-   override fun addRootObserved(key: TaskKey) {
+   override fun<I : In, O : Out> addRootObserved(task: Task<I, O> ): O {
 
-    requireTopDown(key.toTask(taskDefs,store.readTxn()))
-    addOutput(store.writeTxn(),key)
+     val result = requireTopDown(task);
+     store.writeTxn().setObservability(task.key(),Observability.RootObserved)
+    return result
   }
+
 
   override fun gc(): Int{
     var removed = 0;
@@ -141,7 +143,7 @@ open class BottomUpObservableSession(
       executorLogger.requireTopDownInitialStart(key, task)
       val output = require(key, task, cancel)
       executorLogger.requireTopDownInitialEnd(key, task, output);
-        addOutput(store.writeTxn(),key);
+      store.writeTxn().setObservability(key,Observability.RootObserved)
       return output
     } finally {
       store.sync()
@@ -357,10 +359,9 @@ open class BottomUpObservableSession(
 
 
     store.writeTxn().use{ txn -> txn.setObservability(key,Observability.Observed)}
-    val result = store.readTxn().use{ txn -> txn.data(key)}!!;
+    var result = oldData.copy(observability = Observability.Observed);
 
-    // All the dependencies of this task are in order. This task is consistent.
-    // TODO: Verify that executing a 'sibling' dependency can never change the consistency of this task
+    // All the dependencies of this task are consistent. This task is consistent.
     visited[key] = result
     return result
   }

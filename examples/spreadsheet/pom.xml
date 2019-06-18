@@ -45,6 +45,12 @@
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>1.21</version>
     </dependency>
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>RELEASE</version>
+      <scope>compile</scope>
+    </dependency>
 
   </dependencies>
 

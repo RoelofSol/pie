@@ -43,12 +43,12 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     }
 
-    fun setActiveSheet(key : TaskKey) {
+   fun setActiveSheet(key : TaskKey) {
         if(key == active) { return }
         println("Activate $key : Disable : $active")
         if (setObservable) {
             active?.let { active -> exec.dropRootObserved(active) }
-            exec.addRootObserved(key);
+            exec.addRootObserved(key.toTask(pie.taskDefs,pie.store.readTxn()));
         }
         val store = pie.store.readTxn() as InMemoryStore;
         inspector.add_state(store.dump())

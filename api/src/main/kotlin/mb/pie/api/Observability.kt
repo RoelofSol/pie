@@ -8,12 +8,9 @@ enum class Observability : Serializable {
     RootObserved,
     Detached;
     fun isObservable(): Boolean = this == RootObserved || this == Observed
-    fun      isNotObservable() : Boolean = !this.isObservable()
+    fun isNotObservable() : Boolean = !this.isObservable()
 }
 
-fun addOutput(store: StoreWriteTxn, key : TaskKey){
-    store.setObservability(key,Observability.RootObserved)
-}
 
 
 fun dropOutput(store: StoreWriteTxn, key : TaskKey){

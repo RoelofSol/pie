@@ -55,7 +55,7 @@ interface BottomUpExecutor {
 
 interface BottomUpObservableExecutor : BottomUpExecutor{
   fun dropRootObserved(key: TaskKey)
-  fun addRootObserved(key: TaskKey)
+  fun<I : In, O : Out> addRootObserved(task: Task<I, O> ): O
   var dropPolicy : (Task<*,*>) -> Boolean
   fun gc(): Int
 }

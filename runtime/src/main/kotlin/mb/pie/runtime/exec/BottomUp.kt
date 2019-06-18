@@ -42,18 +42,8 @@ class BottomUpExecutorImpl constructor(
   @Throws(ExecException::class, InterruptedException::class)
   override fun requireBottomUp(changedResources: Set<ResourceKey>, cancel: Cancelled) {
     if(changedResources.isEmpty()) return
-    val changedRate = changedResources.size.toFloat() / store.readTxn().use { it.numSourceFiles() }.toFloat()
-    if(changedRate > 0.5) {
-      val topdownSession = TopDownSessionImpl(taskDefs, resourceSystems, store, share, defaultOutputStamper, defaultRequireFileSystemStamper, defaultProvideFileSystemStamper, layerFactory(logger), logger, executorLoggerFactory(logger))
-      for(key in observers.keys) {
-        val task = store.readTxn().use { txn -> key.toTask(taskDefs, txn) }
-        topdownSession.requireInitial(task, cancel)
-        // TODO: observers are not called when using a topdown session.
-      }
-    } else {
-      val session = newSession()
-      session.requireBottomUpInitial(changedResources, cancel)
-    }
+    val session = newSession()
+    session.requireBottomUpInitial(changedResources, cancel)
   }
 
   override fun hasBeenRequired(key: TaskKey): Boolean {
@@ -249,13 +239,6 @@ open class BottomUpSession(
         }
       }
 
-      // Notify observer.
-      val observer = observers[key]
-      if(observer != null) {
-        executorLogger.invokeObserverStart(observer, key, output)
-        observer.invoke(output)
-        executorLogger.invokeObserverEnd(observer, key, output)
-      }
 
       // Task is consistent.
       return existingData
