@@ -6,12 +6,15 @@ import mb.pie.api.TaskKey
 import mb.pie.runtime.PieBuilderImpl
 import mb.pie.runtime.logger.StreamLogger
 import mb.pie.runtime.taskdefs.MutableMapTaskDefs
+import java.lang.Thread.sleep
 import javax.swing.SwingUtilities
 
 
 fun main(args: Array<String>) {
-
-
+  sleep(100)
+  return benchmarks()
+}
+fun ui() {
   val workspace = JavaFSNode("./workspace")
 
   // Now we instantiate the task definitions.

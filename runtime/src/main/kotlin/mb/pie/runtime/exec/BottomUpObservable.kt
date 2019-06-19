@@ -288,13 +288,6 @@ open class BottomUpObservableSession(
       }
     }
 
-    // Notify observer.
-    val observer = observers[key]
-    if(observer != null) {
-      executorLogger.invokeObserverStart(observer, key, output)
-      observer.invoke(output)
-      executorLogger.invokeObserverEnd(observer, key, output)
-    }
 
     // Task is consistent.
     return  existingData

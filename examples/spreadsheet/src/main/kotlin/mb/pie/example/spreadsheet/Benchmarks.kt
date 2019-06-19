@@ -46,6 +46,8 @@ class TubeGraph : BenchGraph () {
 }
 
 
+
+
 class WideDiamondGraph : BenchGraph() {
     override val pie : Pie;
     override val changedFiles : Set<FSNode> = setOf( DiamondTop.ShapeTrigger , DiamondBottom.ResultTrigger);
@@ -68,7 +70,6 @@ class WideDiamondGraph : BenchGraph() {
 
         println("BUILDING NEW PIE");
         pie.bottomUpObservableExecutor.requireTopDown(dt.createTask(None()));
-
     }
 }
 
@@ -119,24 +120,24 @@ fun write_tube_csv(file : String , data: List<List<BenchResult>>,steps:List<Int>
 }
 
 
-fun bench_tube(args: Array<String>) {
+fun bench_tube() {
 
     // return test_bench()
 
     val steps = (100..1000 step 100).toList();
-    val warmups = (1..3);
-    val trials = 1..8;
+    val warmups = (1..15);
+    val trials = 1..30;
 
 
-    write_tube_csv("./obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
+    write_tube_csv("../results/tube_comp/obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { obs_tube_trial( TubeGraph() ,steps) }.toList();
-    write_tube_csv("./tube_obs",results,steps);
+    write_tube_csv("../results/tube_comp/tube_obs",results,steps);
 
 
-    write_tube_csv("./noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
+    write_tube_csv("../results/tube_comp/noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { no_obs_tube_trial( TubeGraph(),steps )}.toList();
-    write_tube_csv("./tube_no_obs",noresults,steps);
+    write_tube_csv("../results/tube_comp/tube_no_obs",noresults,steps);
 
 
 }
@@ -144,7 +145,7 @@ fun bench_tube(args: Array<String>) {
 
 
 fun main(args: Array<String>){
-    bench_tube(args)
+    bench_tube()
 
 }
 
@@ -220,7 +221,7 @@ fun obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
 
 }
 
-fun no_obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
+fun  no_obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
     gc()
     val changes = graph.changedResource();
     val trace = mutableListOf<Int>()
@@ -256,24 +257,24 @@ fun no_obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
     return results
 }
 
-fun bench_diamond(args: Array<String>) {
+fun bench_diamond_sleep() {
 
    // return test_bench()
 
-    val forward = (100..1000 step 100);
+    val forward = (10..100 step 10);
     val steps = forward + (forward.reversed())
     val warmups = (1..5)
     val trials = 1..10;
 
-    write_csv("./obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
+    write_csv(".,/results/diamond_comp/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList();
-    write_csv("./obstrial.csv",results,steps);
+    write_csv(".,/results/diamond_comp/obstrial.csv",results,steps);
 
 
-    write_csv("./noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
+    write_csv(".,/results/diamond_comp/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { diamond_no_obs_trial( WideDiamondGraph(),steps )}.toList();
-    write_csv("./noobstrial.csv",noresults,steps);
+    write_csv(".,/results/diamond_comp/noobstrial.csv",noresults,steps);
 
 }
 
@@ -308,4 +309,8 @@ private fun gc() {
     do {
         System.gc()
     } while (ref.get() != null)
+}
+fun benchmarks() {
+
+    bench_tube()
 }

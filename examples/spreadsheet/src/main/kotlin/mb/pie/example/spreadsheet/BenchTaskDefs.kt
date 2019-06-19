@@ -26,10 +26,13 @@ class TubeTop : TaskDef<None, Int> {
 }
 
 class TubeEdge : TaskDef<Int, Int> {
+    companion object {
+        var AddSleep = false
+    }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: Int): Int {
        // println("EXEC==== TubeEdge Edge ${input}");
-
+        if (AddSleep) { sleep(100) }
         return  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
     }
 }
