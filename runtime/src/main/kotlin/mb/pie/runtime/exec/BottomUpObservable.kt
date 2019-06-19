@@ -263,7 +263,7 @@ open class BottomUpObservableSession(
     val (input, output, _, _, _, observable) = existingData;
     // We can not guarantee unobserved tasks are consistent
     if (observable.isNotObservable()) {
-      return requireTopDownIncremental(key,task,existingData,cancel).cast<I,O>();
+      return requireDetached(key,task,cancel).cast<I,O>();
     }
     // Task is in dependency graph. It may be scheduled to be run, but we need its output *now*.
     val requireNowData = requireScheduledNow(key, cancel)
@@ -296,64 +296,47 @@ open class BottomUpObservableSession(
 
   // This function is called when an Detached task is required again.
   // It recursivly calls itself to make its transitive closure consistent.
-  private fun requireTopDownIncremental(key: TaskKey, task: Task<*,*>,oldData: TaskData<*,*>, cancel: Cancelled): TaskData<*,*> {
+  private fun requireDetached(key: TaskKey, task: Task<*,*>, cancel: Cancelled): TaskData<*,*> {
+    val staleData = requireShared.dataFromStore(key);
+    if( staleData == null) { return exec(key,task,NoData(), cancel) }
 
-    // If a task in the transitive closure is Observed.
-    if (oldData.observability.isObservable()) {
-      // Check if task was already visited this execution. Return immediately if so.
-      val visitedData = requireShared.dataFromVisited(key)
-      if(visitedData != null) {
-        return visitedData
-      }
-
-      // Task might be scheduled, so require now.
-      val requireObs = requireScheduledNow(key,cancel)
-      if(requireObs == null) {
-        return exec(key, task, NoData(), cancel);
-      }
-      // It was Observed and thus consistent before this build.
-      // It is not affected by a change, we can reuse the old result.
-      visited[key] = requireObs;
-      return requireObs
+    // This should not be possible.
+    if (staleData.observability.isObservable()) {
+      throw Error("requireDetached for an already observed task")
     }
 
     // If any required files have changed we must execute;
-    for (req in oldData.resourceRequires) {
+    for (req in staleData.resourceRequires) {
       val inconsistent = requireShared.checkResourceRequire(key,task,req);
       if (inconsistent != null) { return exec(key,task,inconsistent,cancel)};
     }
 
     // if any provided files have been modified we must execute
-    for (providing in oldData.resourceProvides) {
+    for (providing in staleData.resourceProvides) {
       val inconsistent = requireShared.checkResourceProvide(key,task,providing);
       if (inconsistent != null) { return exec(key,task,inconsistent,cancel); }
     }
 
-    // All dependencies are made consistent with requireTopDownIncremental.
-    // When task is unobserved, we requireTopDownIncremental all its children and compare their stamps
-    for (taskRequire in oldData.taskRequires) {
+    // All dependencies are made consistent with requireDetached.
+    // When task is unobserved, we requireDetached all its children and compare their stamps
+    for (taskRequire in staleData.taskRequires) {
 
       val (callee,stamp) = taskRequire;
-
       val calleeTask = store.readTxn().use { txn -> callee.toTask(taskDefs, txn) };
-
-      val storedData = requireShared.dataFromStore(callee);
-      if( storedData == null) { return exec(key,task,NoData(), cancel) }
-      executorLogger.checkTaskRequireStart(key, task, taskRequire)
-      val result : TaskData<*,*> = requireTopDownIncremental(callee, calleeTask,storedData,cancel );
-
-      val newStamp = stamp.stamper.stamp(result.output);
-      if (newStamp != stamp) {
-        val reason = InconsistentTaskReq(taskRequire,newStamp)
+      val isObservable = store.readTxn().observability(callee).isObservable();
+      val currentStamp = if (isObservable) {
+         stamp.stamper.stamp( require(callee,calleeTask) )
+      } else {
+         stamp.stamper.stamp( requireDetached(callee,calleeTask,cancel).output )
+      }
+      if (currentStamp != stamp) {
+        val reason = InconsistentTaskReq(taskRequire,currentStamp)
         executorLogger.checkTaskRequireEnd(key, task, taskRequire, reason)
         return exec(key,task,NoData(),cancel)
       }
     }
-
-
     store.writeTxn().use{ txn -> txn.setObservability(key,Observability.Observed)}
-    var result = oldData.copy(observability = Observability.Observed);
-
+    val result = staleData.copy(observability = Observability.Observed);
     // All the dependencies of this task are consistent. This task is consistent.
     visited[key] = result
     return result
