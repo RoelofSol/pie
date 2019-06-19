@@ -45,7 +45,8 @@ fun clamptext(st: String , len : Int = 18) : String {
         val cut = (len-3)/2;
         label = label.substring(0..cut) + "..." + label.substring((label.length - cut) until label.length)
     }
-    return label
+
+    return label.replace('"','\'');
 }
 
 fun toGraph(dump : StoreDump) : String {
