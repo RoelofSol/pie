@@ -32,7 +32,7 @@ class TubeEdge : TaskDef<Int, Int> {
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: Int): Int {
        // println("EXEC==== TubeEdge Edge ${input}");
-        if (AddSleep) { sleep(100) }
+        if (AddSleep) { sleep(10) }
         return  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
     }
 }
@@ -73,11 +73,14 @@ class DiamondTop : TaskDef<None, Double> {
 }
 
 class DiamondEdge : TaskDef<Int, Double> {
+    companion object {
+        var AddSleep = false
+    }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: Int): Double {
       //  println("EXEC==== Diamond Edge ${input}");
         var result = require(DiamondBottom(),None()).toDouble();
-       // sleep(10)
+        if (DiamondEdge.AddSleep) { sleep(10) }
         return (result * input.toDouble())*2.0;
     }
 }

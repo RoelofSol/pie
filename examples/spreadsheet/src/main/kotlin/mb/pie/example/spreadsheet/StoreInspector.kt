@@ -28,9 +28,9 @@ class StoreInspector() : JFrame() {
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     }
 
-    fun add_state(dump : StoreDump) {
+    fun add_img(dump : BufferedImage) {
         panel.removeAll()
-        panel.add(GraphViz(build_image(dump)))
+        panel.add(GraphViz(dump))
         pack()
     }
 
@@ -50,63 +50,3 @@ class StoreInspector() : JFrame() {
 
     }
 }
-
-
-
-fun build_image(dump: StoreDump) : BufferedImage {
-    try {
-        val proc = ProcessBuilder(listOf("dot","-Tjpeg"))
-                .redirectOutput(ProcessBuilder.Redirect.PIPE)
-                .redirectError(ProcessBuilder.Redirect.INHERIT)
-                .start()
-        val graph = toGraph(dump).toByteArray();
-        proc.outputStream.buffered().use {
-            it.write(graph)
-        }
-        return proc.inputStream.buffered().use {
-            ImageIO.read(it)
-        }
-    } catch (ex: IOException) {
-        throw ex
-    }
-}
-
-
-fun toGraph(dump : StoreDump) : String {
-
-    val keys = hashSetOf<TaskKey>()
-    val get_id = { key : TaskKey -> keys.add(key); key.hashCode()}
-    val files = hashSetOf<Path>()
-    val get_file = { key : Path -> files.add(key); key.hashCode()}
-    val x: FileSystemResource
-    val taskReqs = dump.taskReqs.flatMap{ (e,v) -> v.map {  caller -> "${get_id(e)} -> ${get_id(caller.callee)} [arrowhead=dot]" } }
-    val fileReqs = dump.fileReqs.flatMap { (e,v) -> v.map{ filereq -> "${get_id(e)} -> ${get_file(Paths.get(filereq.key.key.toString()))} [arrowhead=normal]"} }
-    val fileProv = dump.fileGens.flatMap { (e,v) -> v.map{ fileProv -> "${get_id(e)} -> ${get_file(Paths.get(fileProv.key.key.toString()))} [arrowhead=veevee]"}}
-
-    val key_labels = keys.map{ k ->
-        val color = when (dump.observables.getOrDefault(k,Observability.Observed)) {
-            Observability.Observed -> "#40e0d0"
-            Observability.RootObserved -> "#ff00ff"
-            Observability.Detached -> "#333333"
-        }
-        """${k.hashCode()} [label="${k.id}\n${k.key}",color="${color}"]"""}
-    val file_labels = files.map{ k ->
-        val label = "${ k.parent.fileName }/${k.fileName}"
-        """${k.hashCode()} [label="${label}"]"""}
-
-    val result = """
-                digraph G {
-                    node [shape=box]
-                    ${key_labels.joinToString("\n")}
-                    ${file_labels.joinToString("\n")}
-                    ${taskReqs.joinToString("\n")}
-                    ${fileProv.joinToString("\n")}
-                    ${fileReqs.joinToString("\n")}
-
-                }
-        """
-    return result
-}
-
-
-

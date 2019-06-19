@@ -51,7 +51,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
             exec.addRootObserved(key.toTask(pie.taskDefs,pie.store.readTxn()));
         }
         val store = pie.store.readTxn() as InMemoryStore;
-        inspector.add_state(store.dump())
+        inspector.add_img(pie.img())
         //check_state(store)
         active = key
         refresh()
@@ -82,7 +82,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
 
         exec.gc()
         val store = pie.store.readTxn() as InMemoryStore;
-        inspector.add_state(store.dump())
+        inspector.add_img(pie.img())
         //check_state(store)
 
         tabs.addChangeListener{ _ ->

@@ -72,6 +72,7 @@ class MultiSheet : TaskDef<MultiSheet.Input, None> {
             require(Sheet(),entry.path)
 
         }
+        provide(JavaFSNode("./settings"))
         return None()
     }
 }

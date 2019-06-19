@@ -5,6 +5,7 @@ import mb.pie.api.exec.TopDownExecutor
 import mb.pie.api.exec.BottomUpObservableExecutor
 import mb.pie.api.fs.stamp.FileSystemStamper
 import mb.pie.api.stamp.OutputStamper
+import java.awt.image.BufferedImage
 
 /**
  * Facade for PIE.
@@ -17,7 +18,7 @@ interface Pie : AutoCloseable {
 
 
 
-  fun img(location: String)
+  fun img() : BufferedImage
 }
 
 

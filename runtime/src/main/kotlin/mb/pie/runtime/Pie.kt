@@ -19,7 +19,7 @@ import mb.pie.runtime.logger.exec.LoggerExecutorLogger
 import mb.pie.runtime.resourcesystems.MapResourceSystems
 import mb.pie.runtime.share.NonSharingShare
 import mb.pie.runtime.store.InMemoryStore
-import java.util.*
+import java.awt.image.BufferedImage
 
 class PieBuilderImpl : PieBuilder {
   private var taskDefs: TaskDefs? = null
@@ -126,8 +126,8 @@ class PieImpl(
   val executorLoggerFactory: (Logger) -> ExecutorLogger
 
 ) : Pie {
-  override fun img(location: String) {
-    build_image(this, location);
+  override fun img(  ) : BufferedImage {
+    return build_image( (store as InMemoryStore).dump());
   }
 
   override fun dropStore() {
@@ -141,11 +141,6 @@ class PieImpl(
   override fun toString() =
     "PieImpl($store, $share, $defaultOutputStamper, $defaultRequireFileSystemStamper, $defaultProvideFileSystemStamper, ${layerFactory(logger)})"
 
-
-
-}
-
-fun img(pie:Pie,t: String) {
 
 
 }
