@@ -257,15 +257,15 @@ fun bench_diamond_sleep() {
     val steps = forward + (forward.reversed())
     val warmups = (1..1)
     val trials = 1..3;
-    write_csv(".,/results/diamond_sleep/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
+    write_csv("${RESULT_DiR}/diamond_sleep/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList();
-    write_csv(".,/results/diamond_sleep/obstrial.csv",results,steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/obstrial.csv",results,steps);
 
 
-    write_csv(".,/results/diamond_sleep/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { diamond_no_obs_trial( WideDiamondGraph(),steps )}.toList();
-    write_csv(".,/results/diamond_sleep/noobstrial.csv",noresults,steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/noobstrial.csv",noresults,steps);
 
 }
 fun bench_diamond_comp() {
@@ -275,15 +275,15 @@ fun bench_diamond_comp() {
     val steps = forward + (forward.reversed())
     val warmups = (1..5)
     val trials = 1..10;
-    write_csv(".,/results/diamond_comp/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
+    write_csv("${RESULT_DiR}/diamond_comp/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList();
-    write_csv(".,/results/diamond_comp/obstrial.csv",results,steps);
+    write_csv("${RESULT_DiR}/diamond_comp/obstrial.csv",results,steps);
 
 
-    write_csv(".,/results/diamond_comp/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
+    write_csv("${RESULT_DiR}/diamond_comp/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { diamond_no_obs_trial( WideDiamondGraph(),steps )}.toList();
-    write_csv(".,/results/diamond_comp/noobstrial.csv",noresults,steps);
+    write_csv("${RESULT_DiR}/diamond_comp/noobstrial.csv",noresults,steps);
 
 }
 
