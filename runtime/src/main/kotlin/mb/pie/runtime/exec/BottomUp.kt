@@ -265,6 +265,6 @@ open class BottomUpSession(
 
 
   open fun <I : In, O : Out> exec(key: TaskKey, task: Task<I, O>, reason: ExecReason, cancel: Cancelled): TaskData<I, O> {
-    return executor.exec(key, task, reason, this, cancel)
+    return executor.exec(key, task, reason, this, cancel,false)
   }
 }

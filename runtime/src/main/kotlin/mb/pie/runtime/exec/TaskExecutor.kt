@@ -20,16 +20,16 @@ class TaskExecutor(
   private val executorLogger: ExecutorLogger,
   private val postExecFunc: ((TaskKey, TaskData<*, *>) -> Unit)?
 ) {
-  fun <I : In, O : Out> exec(key: TaskKey, task: Task<I, O>, reason: ExecReason, requireTask: RequireTask, cancel: Cancelled): TaskData<I, O> {
+  fun <I : In, O : Out> exec(key: TaskKey, task: Task<I, O>, reason: ExecReason, requireTask: RequireTask, cancel: Cancelled,propegateDetachment : Boolean=true): TaskData<I, O> {
     cancel.throwIfCancelled()
     executorLogger.executeStart(key, task, reason)
     // OPTO: Inline share functions. Requires statically knowledge of the specific Share type to use.
-    val data = share.share(key, { execInternal(key, task, requireTask, cancel) }, { visited[key] })
+    val data = share.share(key, { execInternal(key, task, requireTask, cancel,propegateDetachment) }, { visited[key] })
     executorLogger.executeEnd(key, task, reason, data)
     return data.cast<I, O>()
   }
 
-  private fun <I : In, O : Out> execInternal(key: TaskKey, task: Task<I, O>, requireTask: RequireTask, cancel: Cancelled): TaskData<I, O> {
+  private fun <I : In, O : Out> execInternal(key: TaskKey, task: Task<I, O>, requireTask: RequireTask, cancel: Cancelled,propegateDetachment : Boolean): TaskData<I, O> {
     cancel.throwIfCancelled()
     val oldRequiredSet : Set<TaskKey> = store.readTxn().use {
       it.taskRequires(key).map { it.callee }.toSet()
@@ -41,8 +41,13 @@ class TaskExecutor(
     Stats.addExecution()
     val (taskRequires, resourceRequires, resourceProvides) = context.deps()
 
-    val newRequiredSet : Set<TaskKey> = taskRequires.map{ it.callee }.toSet()
-    val removed = oldRequiredSet.minus(newRequiredSet)
+
+    // Hacks to benchmark BottomUp without propegateDetachment overhead.
+    val removed = if (propegateDetachment) {
+      val newRequiredSet : Set<TaskKey> = taskRequires.map{ it.callee }.toSet()
+       oldRequiredSet.minus(newRequiredSet)
+    } else { setOf() }
+
 
     // Since this task was executed , it is at least considered attached.
     val observability = if (oldObservability.isNotObservable()){
@@ -61,6 +66,10 @@ class TaskExecutor(
     // Write output and dependencies to the store.
     store.writeTxn().use {
       it.setData(key, data)
+
+      for (droppedReq in removed) {
+        propegateDetachment(it,droppedReq)
+      }
     }
 
     store.writeTxn().use {
@@ -72,9 +81,7 @@ class TaskExecutor(
       layer.validatePostWrite(key, data, it)
     }
 
-    for (droppedReq in removed) {
-      propegateDetachment(store.writeTxn(),droppedReq)
-    }
+
 
     // Mark as visited.
     visited[key] = data
