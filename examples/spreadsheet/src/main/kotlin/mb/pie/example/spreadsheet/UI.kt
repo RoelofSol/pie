@@ -23,7 +23,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
     private var active : TaskKey? = null
     private val inspector = inspector
     private val setObservable = setObservable;
-
+    private val q = Queue({e -> update(e)})
     init {
         title = "Spreadsheet2"
 
@@ -62,9 +62,9 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
         val tabs = JTabbedPane()
         panel.add(tabs, BorderLayout.CENTER);
 
-
+        panel.add(q,BorderLayout.SOUTH)
         val root = (tx().input(root_task) as MultiSheet.Input).workspace
-        panel.add(PromptComponent(root,{e -> update(e)}),BorderLayout.SOUTH)
+
         add(panel, BorderLayout.CENTER);
 
         val sheets = tx().taskRequires(root_task);
@@ -73,7 +73,7 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
             val sheet_name = sheet_state.input.javaPath.fileName
             val sheet_result = sheet_state.output
             val cells_state = all_dependents(tx(),sheet.callee).map { req -> tx().data(req) as TaskData<JavaFSPath,Int> }.toList()
-            val component = SheetComponent(sheet.callee,sheet_state,cells_state,{e -> update(e)} )
+            val component = SheetComponent(sheet.callee,sheet_state,cells_state,{e -> q.q(e)} )
             tabs.addTab(sheet_name.toString() + "($sheet_result)",component)
             if( sheet.callee == active ) {
                 tabs.selectedComponent = component
@@ -93,12 +93,16 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
         }
     }
 
-    fun update(changed_file : JavaFSPath) {
-        println("Updated: ${changed_file}")
-        val asResourceKey = FileSystemResource(JavaFSNode(changed_file.javaPath)).key()
-        pie.bottomUpObservableExecutor.requireBottomUp(setOf(asResourceKey))
+    fun update(changed_files : Set<JavaFSPath>) {
+        println("Updated: ${changed_files}")
+        val asResourceKey = changed_files.map{FileSystemResource(JavaFSNode(it)).key()}.toSet()
+        if(setObservable) {
+            pie.bottomUpObservableExecutor.requireBottomUp(asResourceKey)
+        } else {
+            pie.bottomUpExecutor.requireBottomUp(asResourceKey)
+        }
         //check_state(pie.store.readTxn() as InMemoryStore)
-        println("Ok: ${changed_file}")
+        println("Ok: ${changed_files}")
         refresh()
     }
 
@@ -117,7 +121,8 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
             add(Label("Result ${sheet_state.output}"))
             add(cells, BorderLayout.CENTER);
             for ( cell in cells_state) {
-                val name = "${cell.input.javaPath.fileName.toString()} = ${cell.output}"
+
+                val name = "${pstring(cell.input)} = ${cell.output}"
                 cells.addTab(name,CellComponent(cell,refresh))
             }
 
@@ -144,16 +149,38 @@ class SpreadSheet(pie: PieImpl, root_task: TaskKey, inspector: StoreInspector,se
     }
 
 
-    class PromptComponent( root : JavaFSPath, refresh: (JavaFSPath) -> Unit) : JTextField(20) {
+
+    class PromptComponent( root : JavaFSPath, refresh: (Set<JavaFSPath>) -> Unit) : JTextField(20) {
         init {
             addActionListener { _ ->
-                val changed = root.appendSegment(this.text).normalized
+                val changed = this.text.split(",").map { root.appendSegment(it).normalized}.toSet();
                 refresh(changed)
-
              }
         }
     }
+
+    class Queue( refresh: (Set<JavaFSPath>) -> Unit) : JButton() {
+        val queued = mutableSetOf<JavaFSPath>()
+        init {
+            addActionListener {
+                refresh(queued);
+                queued.clear()
+            }
+        }
+        fun q(f : JavaFSPath) {
+            queued.add(f);
+            val tmp = queued.toList().map{pstring(it)};
+            this.text = tmp.toString()
+        }
+    }
 }
+
+fun pstring(i: JavaFSPath) : String {
+    val p = i.javaPath;
+    return "${ p.parent.fileName }/${p.fileName } "
+}
+
+
 
 
 

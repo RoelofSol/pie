@@ -11,7 +11,7 @@ import javax.swing.SwingUtilities
 
 
 fun main(args: Array<String>) {
-  return bench_all();
+ // return play();
   ui();
 }
 fun ui() {
@@ -56,7 +56,7 @@ fun ui() {
 
   SwingUtilities.invokeAndWait {
     val inspector = StoreInspector()
-    SpreadSheet(pie,workspace_task.key(),inspector,true)
+    SpreadSheet(pie,workspace_task.key(),inspector,false)
   }
 
   pie.close()
