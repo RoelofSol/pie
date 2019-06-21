@@ -11,28 +11,40 @@ import java.io.IOException
 import javax.imageio.ImageIO
 import java.awt.image.BufferedImage
 import java.awt.Dimension
+import java.awt.event.KeyListener
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class StoreInspector() : JFrame() {
-    private var idx = 0
+    private var idx : AtomicInteger = AtomicInteger(0)
     private val panel = JPanel()
     private val states = mutableListOf<GraphViz>()
-
+    private val images = mutableListOf<BufferedImage>();
     init {
-        title = "Store"
+        title = "Store "
         isVisible = true
         add(panel, BorderLayout.CENTER);
 
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+        addMouseWheelListener { if (it.preciseWheelRotation > 0) { showImg(idx.get()+1)} else { showImg(idx.get()-1)}}
+
     }
 
     fun add_img(dump : BufferedImage) {
+        images.add(dump)
+        showImg(images.size-1);
+    }
+
+    fun showImg(i: Int) {
+        idx.set((i + images.size) % images.size);
         panel.removeAll()
-        panel.add(GraphViz(dump))
+        panel.add(GraphViz(images[i]))
+        title= "${idx.get()} of ${images.size-1}"
         pack()
     }
+
 
     inner class GraphViz(image : BufferedImage) : JPanel() {
 

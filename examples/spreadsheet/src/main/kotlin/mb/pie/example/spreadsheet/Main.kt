@@ -11,7 +11,22 @@ import javax.swing.SwingUtilities
 
 
 fun main(args: Array<String>) {
- return bench_all()
+  //TubeTop.Verbose = true
+  return bench_tube_sleep()
+  if (args.contains("ui")) { return ui()}
+  if (args.contains("test")) { return test_bench()}
+
+  val all = args.contains("all");
+  val dotube = all || args.contains("tube")
+  val dodiamond = all || args.contains("diamond")
+  if (dotube){
+    bench_tube_sleep()
+    bench_tube()
+  }
+  if (dodiamond) {
+    bench_diamond_sleep()
+    bench_diamond_comp()
+  }
 
 }
 fun ui() {
@@ -56,7 +71,7 @@ fun ui() {
 
   SwingUtilities.invokeAndWait {
     val inspector = StoreInspector()
-    SpreadSheet(pie,workspace_task.key(),inspector,false)
+    SpreadSheet(pie,workspace_task.key(),inspector,true)
   }
 
   pie.close()

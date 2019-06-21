@@ -15,12 +15,13 @@ class TubeTop : TaskDef<None, Int> {
     companion object {
         var ShapeTrigger = JavaFSNode("/dev/null")
         var Shape = 1
+        var Verbose = false
 
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
         require(ShapeTrigger,FileSystemStampers.always_dirty);
-       // println("EXEC==== TubeEdge Top ${input}");
+        if (TubeTop.Verbose) {println("EXEC====  Top ${input}");}
         return  require(TubeEdge(),Shape);
     }
 }
@@ -28,10 +29,11 @@ class TubeTop : TaskDef<None, Int> {
 class TubeEdge : TaskDef<Int, Int> {
     companion object {
         var AddSleep = false
+
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: Int): Int {
-       // println("EXEC==== TubeEdge Edge ${input}");
+        if (TubeTop.Verbose) {println("EXEC====  Edge ${input}");}
         if (AddSleep) { sleep(10) }
         return  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
     }
@@ -44,7 +46,7 @@ class TubeBottom : TaskDef<None, Int> {
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
-       // println("EXEC==== Tube Bottom ${input}");
+        if (TubeTop.Verbose) {println("EXEC====  Bottom ${input}");}
         require(ResultTrigger,FileSystemStampers.always_dirty);
         return Result
     }
@@ -57,7 +59,7 @@ class TubeBottom : TaskDef<None, Int> {
 class DiamondTop : TaskDef<None, Int> {
     companion object {
         var ShapeTrigger = JavaFSNode("/dev/null")
-        var Shape = listOf<Int>(1);
+        var Shape = 1
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
@@ -65,8 +67,8 @@ class DiamondTop : TaskDef<None, Int> {
         //val bytes = ShapeTrigger.readAllBytes()
         var sum = 0
      //   println("EXEC==== Diamond Top OF size ${Shape.size}");
-        for ( line in Shape) {
-            sum += require(DiamondEdge(), line.toInt())
+        for ( line in 0..Shape) {
+            sum += require(DiamondEdge(), line)
         }
         return sum
     }

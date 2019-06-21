@@ -77,7 +77,7 @@ fun toGraph(dump : StoreDump) : String {
     val key_labels = keys.map { k ->
         val misc = when (dump.observables.getOrDefault(k, Observability.Observed)) {
             Observability.Observed -> ""
-            Observability.RootObserved -> ",color=purple"
+            Observability.RootObserved -> ",shape=oval"
             Observability.Detached -> ",fillcolor=grey"
         }
 
