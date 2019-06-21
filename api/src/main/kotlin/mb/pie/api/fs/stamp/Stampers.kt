@@ -26,7 +26,7 @@ object FileSystemStampers {
    */
 
   fun time_since_used( duration: Duration ) = TimeSinceUsedResourceStamper(duration)
-  val always_dirty = TimeSinceUsedResourceStamper( Duration.ZERO )
+  val always_dirty = NeverEqualStamp()
 
 }
 

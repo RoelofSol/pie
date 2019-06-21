@@ -13,7 +13,7 @@ import javax.swing.SwingUtilities
 fun main(args: Array<String>) {
   //TubeTop.Verbose = true
   //TubeEdge.AddSleep = true
-  return bench_tube_sleep()
+  return test_bench()
   if (args.contains("ui")) { return ui()}
   if (args.contains("test")) { return test_bench()}
 
