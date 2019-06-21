@@ -70,7 +70,7 @@ class TubeGraph : BenchGraph () {
 class WideDiamondGraph : BenchGraph() {
     override val pie : Pie;
     var run = 0;
-    override val changedFiles : Set<FSNode> = setOf( DiamondTop.ShapeTrigger , DiamondBottom.ResultTrigger);
+    override val changedFiles : Set<FSNode> = setOf( DiamondBottom.ResultTrigger);
     override fun setSize(size: Int) {
         DiamondTop.Shape = size
         run += 1;

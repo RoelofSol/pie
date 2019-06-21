@@ -20,7 +20,7 @@ class TubeTop : TaskDef<None, Int> {
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
-        require(ShapeTrigger,FileSystemStampers.always_dirty);
+
         if (TubeTop.Verbose) {println("EXEC====  Top ${input}");}
         return  require(TubeEdge(),Shape);
     }
@@ -63,7 +63,6 @@ class DiamondTop : TaskDef<None, Int> {
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
-        require(ShapeTrigger,FileSystemStampers.always_dirty);
         //val bytes = ShapeTrigger.readAllBytes()
         var sum = 0
      //   println("EXEC==== Diamond Top OF size ${Shape.size}");
