@@ -54,16 +54,16 @@ class TubeBottom : TaskDef<None, Int> {
 
 
 
-class DiamondTop : TaskDef<None, Double> {
+class DiamondTop : TaskDef<None, Int> {
     companion object {
         var ShapeTrigger = JavaFSNode("/dev/null")
         var Shape = listOf<Int>(1);
     }
     override val id: String = javaClass.simpleName
-    override fun ExecContext.exec(input: None): Double {
+    override fun ExecContext.exec(input: None): Int {
         require(ShapeTrigger,FileSystemStampers.always_dirty);
-        val bytes = ShapeTrigger.readAllBytes()
-        var sum = 0.0
+        //val bytes = ShapeTrigger.readAllBytes()
+        var sum = 0
      //   println("EXEC==== Diamond Top OF size ${Shape.size}");
         for ( line in Shape) {
             sum += require(DiamondEdge(), line.toInt())
@@ -72,16 +72,16 @@ class DiamondTop : TaskDef<None, Double> {
     }
 }
 
-class DiamondEdge : TaskDef<Int, Double> {
+class DiamondEdge : TaskDef<Int, Int> {
     companion object {
         var AddSleep = false
     }
     override val id: String = javaClass.simpleName
-    override fun ExecContext.exec(input: Int): Double {
+    override fun ExecContext.exec(input: Int): Int {
       //  println("EXEC==== Diamond Edge ${input}");
-        var result = require(DiamondBottom(),None()).toDouble();
+        var result = require(DiamondBottom(),None());
         if (DiamondEdge.AddSleep) { sleep(10) }
-        return (result * input.toDouble())*2.0;
+        return (result * input);
     }
 }
 

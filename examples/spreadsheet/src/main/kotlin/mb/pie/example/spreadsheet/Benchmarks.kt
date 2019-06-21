@@ -61,10 +61,12 @@ class TubeGraph : BenchGraph () {
 
 class WideDiamondGraph : BenchGraph() {
     override val pie : Pie;
+    var run = 0;
     override val changedFiles : Set<FSNode> = setOf( DiamondTop.ShapeTrigger , DiamondBottom.ResultTrigger);
     override fun setSize(size: Int) {
         DiamondTop.Shape = (0..size).toList()
-        DiamondBottom.Result = 100+(Math.random()*100.0).toInt()
+        run += 1;
+        DiamondBottom.Result = size + run;
     }
     val bt = DiamondTop();
     init {
@@ -290,24 +292,39 @@ fun bench_diamond_comp() {
 
 fun diamond_obs_trial(graph : WideDiamondGraph, steps: List<Int>): List<Long> {
     gc()
+    val trace = mutableListOf<Int>()
+    val btt= graph.bt.createTask(None())
+    graph.pie.bottomUpObservableExecutor.setObserver(btt.key() ) {
+        trace.add(it as Int)
+    };
     val changes = graph.changedResource();
 
-    return steps.map{
+    val result= steps.map{
                 graph.setSize(it);
                 val startTime = System.nanoTime()
                 graph.pie.bottomUpObservableExecutor.requireBottomUp(changes);
         System.nanoTime() - startTime
             };
+    println("${trace.size}")
+    return result
 }
 fun diamond_no_obs_trial(graph : WideDiamondGraph,steps: List<Int>): List<Long> {
     gc()
+    val trace = mutableListOf<Int>()
+    val btt= graph.bt.createTask(None())
+    graph.pie.bottomUpExecutor.setObserver(btt.key() ) {
+        trace.add(it as Int)
+    };
     val changes = graph.changedResource();
-    return steps.map{
+
+    val result = steps.map{
         graph.setSize(it);
         val startTime = System.nanoTime()
         graph.pie.bottomUpExecutor.requireBottomUp(changes);
         System.nanoTime() - startTime
     };
+    println("${trace.size}")
+    return result
 }
 
 fun bench_all(){

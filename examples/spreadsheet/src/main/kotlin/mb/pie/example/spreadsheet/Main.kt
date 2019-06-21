@@ -11,8 +11,8 @@ import javax.swing.SwingUtilities
 
 
 fun main(args: Array<String>) {
- return bench_all();
-  
+ return bench_all()
+
 }
 fun ui() {
   val workspace = JavaFSNode("./workspace")
