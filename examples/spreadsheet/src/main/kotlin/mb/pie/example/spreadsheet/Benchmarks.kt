@@ -32,7 +32,7 @@ abstract class BenchGraph {
 
 class TubeGraph : BenchGraph () {
     override val pie : Pie;
-    override val changedFiles : Set<FSNode> = setOf( TubeTop.ShapeTrigger , TubeBottom.ResultTrigger);
+    override val changedFiles : Set<FSNode> = setOf(  TubeBottom.ResultTrigger);
     override fun setSize(size: Int) {
         TubeTop.Shape = size;
     }
@@ -55,7 +55,7 @@ class TubeGraph : BenchGraph () {
         pieBuilder.withTaskDefs(map)
         //pieBuilder.withLogger(StreamLogger.verbose()  );
         pie = pieBuilder.build();
-        //println("BUILDING NEW PIE");
+        println("BUILDING NEW PIE");
         pie.bottomUpObservableExecutor.requireTopDown(topkey);
 
     }
@@ -87,7 +87,7 @@ class WideDiamondGraph : BenchGraph() {
         //pieBuilder.withLogger(StreamLogger.verbose()  );
         pie = pieBuilder.build();
         setSize(1)
-        //println("BUILDING NEW PIE");
+         println("BUILDING NEW PIE");
         pie.bottomUpObservableExecutor.requireTopDown(dt.createTask(None()));
     }
 }
@@ -95,6 +95,10 @@ class WideDiamondGraph : BenchGraph() {
 fun test_bench() {
 
     TubeTop.Verbose = true;
+    obs_tube_trial( TubeGraph() , (1..10 step 1).toList())
+    //println("DONE==============")
+    no_obs_tube_trial(TubeGraph(),(1..10 step 1).toList())
+    //println("\n\n\n\nNEW RUN ==============")
     obs_tube_trial( TubeGraph() , (1..10 step 1).toList())
     //println("DONE==============")
     no_obs_tube_trial(TubeGraph(),(1..10 step 1).toList())
@@ -137,6 +141,7 @@ fun bench_tube() {
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { obs_tube_trial( TubeGraph() ,steps) }.toList();
     write_tube_csv("${RESULT_DiR}tube_comp/tube_obs",results,steps);
+
     write_tube_csv("${RESULT_DiR}tube_comp/noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { no_obs_tube_trial( TubeGraph(),steps )}.toList();
     write_tube_csv("${RESULT_DiR}tube_comp/tube_no_obs",noresults,steps);
@@ -144,7 +149,7 @@ fun bench_tube() {
 fun bench_tube_sleep() {
     TubeEdge.AddSleep = true;
     // return test_bench()
-    val steps = (10..100 step 10).toList();
+    val steps = (1..10 step 1).toList();
     val warmups = (1..1);
     val trials = 1..3;
     write_tube_csv("${RESULT_DiR}tube_sleep/obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
@@ -173,38 +178,38 @@ fun obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
     };
     val results =  steps.map{
 
-        //println("Refresh")
+        println("Obs(${it}):Refresh ")
         graph.setSize(it);
         graph.pie.bottomUpObservableExecutor.requireBottomUp(changes);
 
-        //println("TRIAL: ReObs")
+        //println("Obs(${it}):TRIAL: ReObs")
         val startTime = System.nanoTime()
         graph.pie.bottomUpObservableExecutor.dropRootObserved(graph.topkey.key());
         //p.add_img(graph.pie.img())
         graph.pie.bottomUpObservableExecutor.addRootObserved(graph.topkey);
         val a = System.nanoTime() - startTime;
         //p.add_img(graph.pie.img())
-        //println("TRIAL: ReObs Exec (Dropping)")
+        //println("Obs(${it}):TRIAL: ReObs Exec (Dropping)")
         val startTime2 = System.nanoTime()
         graph.pie.bottomUpObservableExecutor.dropRootObserved(graph.topkey.key());
         graph.changeResult()
-        //println(" Require (Unobs) ")
+        //println("Obs(${it}):Require (Unobs) ")
         graph.pie.bottomUpObservableExecutor.requireBottomUp(changes);
 
-        //println(" Reobserve  ")
+        //println("Obs(${it}):Reobserve  ")
         graph.pie.bottomUpObservableExecutor.addRootObserved(graph.topkey);
         val b = System.nanoTime() - startTime2;
 
-        //println(" TRIAL:ReObs Exec Twice")
+        //println("Obs(${it}):TRIAL:ReObs Exec Twice")
         val startTime3 = System.nanoTime()
         graph.pie.bottomUpObservableExecutor.dropRootObserved(graph.topkey.key());
-        //println(" Require (Unobs) ")
+        //println("Obs(${it}):Require (Unobs) ")
         graph.changeResult()
         graph.pie.bottomUpObservableExecutor.requireBottomUp(changes);
-        //println(" Require (Unobs) ")
+        //println("Obs(${it}):Require (Unobs) ")
         graph.changeResult()
         graph.pie.bottomUpObservableExecutor.requireBottomUp(changes);
-        //println(" Reobserve  ")
+        //println("Obs(${it}):Reobserve  ")
         graph.pie.bottomUpObservableExecutor.addRootObserved(graph.topkey);
         val c = System.nanoTime() - startTime3;
         BenchResult(a,b,c)
@@ -224,26 +229,26 @@ fun  no_obs_tube_trial(graph : TubeGraph, steps: List<Int>): List<BenchResult> {
         trace.add(it as Int)
     };
     val results =  steps.map{
-        //println("Refresh")
+        println("Un(${it}):Refresh")
         graph.setSize(it);
         graph.changeResult()
         graph.pie.bottomUpExecutor.requireBottomUp(changes);
 
-        //println("TRIAL: Exec")
+        //println("Un(${it}):TRIAL: Exec")
         val startTime2 = System.nanoTime()
-        //println(" Require (obs) ")
+        //println("Un(${it}):Require (obs) ")
         graph.changeResult();
         graph.pie.bottomUpExecutor.requireBottomUp(changes);
         val b = System.nanoTime() - startTime2;
 
-        //println(" TRIAL: Exec Twice")
+        //println("Un(${it}):TRIAL: Exec Twice")
         val startTime3 = System.nanoTime()
 
-        //println(" Require (obs) ")
+        //println("Un(${it}):Require (obs) ")
         graph.changeResult();
         graph.pie.bottomUpExecutor.requireBottomUp(changes);
         graph.changeResult();
-        //println(" Require (obs) ")
+        //println("Un(${it}):Require (obs) ")
         graph.pie.bottomUpExecutor.requireBottomUp(changes);
         val c = System.nanoTime() - startTime3;
 

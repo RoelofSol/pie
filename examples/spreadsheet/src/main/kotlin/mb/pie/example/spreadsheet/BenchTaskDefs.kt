@@ -34,7 +34,7 @@ class TubeEdge : TaskDef<Int, Int> {
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: Int): Int {
         if (TubeTop.Verbose) {println("EXEC====  Edge ${input}");}
-        if (AddSleep) { sleep(10) }
+        if (AddSleep) { sleep(50) }
         return  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
     }
 }

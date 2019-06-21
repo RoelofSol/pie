@@ -29,7 +29,8 @@ class BottomUpObservableExecutorImpl constructor(
 
    override fun<I : In, O : Out> addRootObserved(task: Task<I, O> ): O {
 
-     val result = requireTopDown(task);
+     val session = newSession()
+     val result = session.require(task.key(),task, NullCancelled())
      store.writeTxn().setObservability(task.key(),Observability.RootObserved)
     return result
   }
@@ -138,6 +139,7 @@ open class BottomUpObservableSession(
    * Entry point for top-down builds.
    */
   open fun <I : In, O : Out> requireTopDownInitial(task: Task<I, O>, cancel: Cancelled = NullCancelled()): O {
+
     try {
       val key = task.key()
       executorLogger.requireTopDownInitialStart(key, task)
