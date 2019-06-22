@@ -24,13 +24,20 @@ class BottomUpObservableExecutorImpl constructor(
   private val observers = ConcurrentHashMap<TaskKey, TaskObserver>()
 
   override fun dropRootObserved(key: TaskKey) {
-    dropOutput(store.writeTxn(),key)
+
+    val txn = store.writeTxn();
+    txn.setObservability(key,Observability.Observed);
+    propegateDetachment(txn,key)
   }
 
    override fun<I : In, O : Out> addRootObserved(task: Task<I, O> ): O {
 
      val session = newSession()
-     val result = session.require(task.key(),task, NullCancelled())
+     val result = if (store.readTxn().observability(task.key()) == Observability.Detached) {
+       session.require(task.key(), task, NullCancelled())
+     } else {
+       store.readTxn().use { it.data(task.key())!!.cast<I,O>().output};
+     }
      store.writeTxn().setObservability(task.key(),Observability.RootObserved)
     return result
   }
