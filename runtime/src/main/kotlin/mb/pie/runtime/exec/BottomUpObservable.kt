@@ -26,6 +26,7 @@ class BottomUpObservableExecutorImpl constructor(
   override fun dropRootObserved(key: TaskKey) {
 
     val txn = store.writeTxn();
+    if (txn.observability(key) != Observability.RootObserved ) { return }
     txn.setObservability(key,Observability.Observed);
     propegateDetachment(txn,key)
   }
