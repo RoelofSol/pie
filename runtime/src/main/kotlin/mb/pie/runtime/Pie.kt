@@ -126,9 +126,14 @@ class PieImpl(
   val executorLoggerFactory: (Logger) -> ExecutorLogger
 
 ) : Pie {
+  override fun dotgraph(): String {
+    return toGraph((store as InMemoryStore).dump())
+  }
+
   override fun img(  ) : BufferedImage {
     return build_image( (store as InMemoryStore).dump());
   }
+
 
   override fun dropStore() {
     store.writeTxn().use { it.drop() }

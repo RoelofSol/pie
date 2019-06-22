@@ -19,6 +19,7 @@ interface Pie : AutoCloseable {
 
 
   fun img() : BufferedImage
+  fun dotgraph() : String
 }
 
 
