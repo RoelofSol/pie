@@ -7,6 +7,7 @@ import mb.pie.api.fs.FileSystemResource
 import mb.pie.runtime.PieBuilderImpl
 import mb.pie.runtime.logger.StreamLogger
 import mb.pie.runtime.taskdefs.MutableMapTaskDefs
+import org.openjdk.jmh.infra.Blackhole
 import java.io.FileWriter
 import java.lang.ref.WeakReference
 import javax.swing.SwingUtilities
@@ -24,6 +25,9 @@ private fun gc() {
 }
 
 abstract class BenchGraph {
+    companion object {
+        val variant = ""
+    }
     abstract val pie : Pie;
     abstract val changedFiles: Set<FSNode>
     abstract fun setSize(i: Int);
@@ -100,9 +104,9 @@ fun test_bench() {
     //TubeTop.Verbose = true;
     TubeEdge.AddSleep = true
     val steps = (1..10 step 1).toList()
-    write_tube_csv ("${RESULT_DiR}tube_sleep/tube_obs", listOf( obs_tube_trial( TubeGraph() , steps) ) , steps)
+    write_tube_csv ("${RESULT_DiR}tube_sleep/bh_tube_obs", listOf( obs_tube_trial( TubeGraph() , steps) ) , steps)
     println("DONE==============")
-    write_tube_csv ("${RESULT_DiR}tube_sleep/tube_no_obs", listOf( no_obs_tube_trial( TubeGraph() , steps) ) , steps)
+    write_tube_csv ("${RESULT_DiR}tube_sleep/bh_tube_no_obs", listOf( no_obs_tube_trial( TubeGraph() , steps) ) , steps)
 
 }
 
@@ -139,14 +143,14 @@ fun bench_tube() {
     val steps = (100..1000 step 100).toList();
     val warmups = (1..15);
     val trials = 1..30;
-    write_tube_csv("${RESULT_DiR}tube_comp/obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
+    write_tube_csv("${RESULT_DiR}tube_comp/bh_obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { obs_tube_trial( TubeGraph() ,steps) }.toList();
-    write_tube_csv("${RESULT_DiR}tube_comp/tube_obs",results,steps);
+    write_tube_csv("${RESULT_DiR}tube_comp/bh_tube_obs",results,steps);
 
-    write_tube_csv("${RESULT_DiR}tube_comp/noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
+    write_tube_csv("${RESULT_DiR}tube_comp/bh_noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { no_obs_tube_trial( TubeGraph(),steps )}.toList();
-    write_tube_csv("${RESULT_DiR}tube_comp/tube_no_obs",noresults,steps);
+    write_tube_csv("${RESULT_DiR}tube_comp/bh_tube_no_obs",noresults,steps);
 }
 fun bench_tube_sleep() {
     TubeEdge.AddSleep = true;
@@ -154,13 +158,13 @@ fun bench_tube_sleep() {
     val steps = (1..10 step 1).toList();
     val warmups = (1..1);
     val trials = 1..3;
-    write_tube_csv("${RESULT_DiR}tube_sleep/obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
+    write_tube_csv("${RESULT_DiR}tube_sleep/bh_obswarmup",warmups.map { obs_tube_trial( TubeGraph(),steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { obs_tube_trial( TubeGraph() ,steps) }.toList();
-    write_tube_csv("${RESULT_DiR}tube_sleep/tube_obs",results,steps);
-    write_tube_csv("${RESULT_DiR}tube_sleep/noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
+    write_tube_csv("${RESULT_DiR}tube_sleep/bh_tube_obs",results,steps);
+    write_tube_csv("${RESULT_DiR}tube_sleep/bh_noobswarmup",warmups.map { no_obs_tube_trial( TubeGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { no_obs_tube_trial( TubeGraph(),steps )}.toList();
-    write_tube_csv("${RESULT_DiR}tube_sleep/tube_no_obs",noresults,steps);
+    write_tube_csv("${RESULT_DiR}tube_sleep/bh_tube_no_obs",noresults,steps);
 }
 
 
@@ -266,15 +270,15 @@ fun bench_diamond_sleep() {
     val steps = forward + (forward.reversed()) + forward
     val warmups = (1..1)
     val trials = 1..3;
-    write_csv("${RESULT_DiR}/diamond_sleep/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
+    write_csv("${RESULT_DiR}/diamond_sleep/bh_obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList();
-    write_csv("${RESULT_DiR}/diamond_sleep/obstrial.csv",results,steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/bh_obstrial.csv",results,steps);
 
 
-    write_csv("${RESULT_DiR}/diamond_sleep/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/bh_noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { diamond_no_obs_trial( WideDiamondGraph(),steps )}.toList();
-    write_csv("${RESULT_DiR}/diamond_sleep/noobstrial.csv",noresults,steps);
+    write_csv("${RESULT_DiR}/diamond_sleep/bh_noobstrial.csv",noresults,steps);
 
 }
 fun bench_diamond_comp() {
@@ -286,14 +290,14 @@ fun bench_diamond_comp() {
     val trials = 1..10;
 
 
-    write_csv(  "${RESULT_DiR}/diamond_comp/noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
+    write_csv(  "${RESULT_DiR}/diamond_comp/bh_noobswarmup",warmups.map { diamond_no_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps);
     val noresults = trials.map { diamond_no_obs_trial( WideDiamondGraph(),steps )}.toList();
-    write_csv("${RESULT_DiR}/diamond_comp/noobstrial.csv",noresults,steps);
+    write_csv("${RESULT_DiR}/diamond_comp/bh_noobstrial.csv",noresults,steps);
 
-    write_csv("${RESULT_DiR}/diamond_comp/obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
+    write_csv("${RESULT_DiR}/diamond_comp/bh_obswarmup",warmups.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList(),steps) ;
     /* write_csv("./obstrial.csv",results,steps); */
     val results = trials.map { diamond_obs_trial( WideDiamondGraph() ,steps) }.toList();
-    write_csv("${RESULT_DiR}/diamond_comp/obstrial.csv",results,steps);
+    write_csv("${RESULT_DiR}/diamond_comp/bh_obstrial.csv",results,steps);
 
 
 

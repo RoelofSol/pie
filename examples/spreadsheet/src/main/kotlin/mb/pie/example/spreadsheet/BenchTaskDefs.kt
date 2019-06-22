@@ -7,6 +7,7 @@ import mb.pie.api.Key
 import mb.pie.api.None
 import mb.pie.api.TaskDef
 import mb.pie.api.fs.stamp.FileSystemStampers
+import org.openjdk.jmh.infra.Blackhole
 import java.io.Serializable
 import java.lang.Thread.sleep
 
@@ -16,6 +17,8 @@ class TubeTop : TaskDef<None, Int> {
         var ShapeTrigger = JavaFSNode("/dev/null")
         var Shape = 1
         var Verbose = false
+
+        val Hole =  Blackhole("Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.")
 
     }
     override val id: String = javaClass.simpleName
@@ -35,7 +38,9 @@ class TubeEdge : TaskDef<Int, Int> {
     override fun ExecContext.exec(input: Int): Int {
         if (TubeTop.Verbose) {println("EXEC====  Edge ${input}");}
         if (AddSleep) { sleep(10) }
-        return  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
+        val result =  if (input == 0) {require(TubeBottom(),None()); } else { require(TubeEdge(),input -1)}
+        TubeTop.Hole.consume(result)
+        return result
     }
 }
 
@@ -46,8 +51,10 @@ class TubeBottom : TaskDef<None, Int> {
     }
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
+
         if (TubeTop.Verbose) {println("EXEC====  Bottom ${input}");}
-        require(ResultTrigger,FileSystemStampers.always_dirty);
+        val stamp = require(ResultTrigger,FileSystemStampers.always_dirty);
+        TubeTop.Hole.consume(stamp)
         return Result
     }
 }
@@ -68,6 +75,7 @@ class DiamondTop : TaskDef<None, Int> {
      //   println("EXEC==== Diamond Top OF size ${Shape.size}");
         for ( line in 0..Shape) {
             sum += require(DiamondEdge(), line)
+            TubeTop.Hole.consume(sum)
         }
         return sum
     }
@@ -82,6 +90,7 @@ class DiamondEdge : TaskDef<Int, Int> {
       //  println("EXEC==== Diamond Edge ${input}");
         var result = require(DiamondBottom(),None());
         if (DiamondEdge.AddSleep) { sleep(10) }
+        TubeTop.Hole.consume(result)
         return (result * input);
     }
 }
@@ -95,7 +104,8 @@ class DiamondBottom : TaskDef<None, Int> {
     override val id: String = javaClass.simpleName
     override fun ExecContext.exec(input: None): Int {
   //      println("EXEC==== Diamond Bottom ${input}");
-        require(ResultTrigger,FileSystemStampers.always_dirty);
+        val result = require(ResultTrigger,FileSystemStampers.always_dirty);
+        TubeTop.Hole.consume(result)
         return Result
     }
 }
