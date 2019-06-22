@@ -284,7 +284,7 @@ fun bench_diamond_sleep() {
 fun bench_diamond_comp() {
     DiamondEdge.AddSleep = false
     // return test_bench()
-    val forward = (100..1000 step 100);
+    val forward = (10..1000 step 10);
     val steps = forward + (forward.reversed()) + forward
     val warmups = (1..5)
     val trials = 1..10;
