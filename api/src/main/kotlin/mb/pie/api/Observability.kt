@@ -16,9 +16,7 @@ enum class Observability : Serializable {
 
 fun propegateDetachment(store: StoreWriteTxn,key: TaskKey) {
     val observability = store.observability(key);
-    if ( observability == Observability.Detached ){
-        throw Error("Invalid Observability state. Please re-execute with the top down method")
-    }
+
 
     // Ignore detachment if this task is RootObserved
     if ( observability == Observability.RootObserved ){ return }
